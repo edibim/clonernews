@@ -1212,7 +1212,6 @@ Verify the complete application against the exercise and every audit action.
 
 ## Documentation Cleanup
 
-- [ ] Update `docs/AGENTS.md` so it describes ClonerNews rather than lem-in.
 - [ ] Keep `docs/exercise.md` and `docs/audit.md` unchanged.
 - [ ] Ensure other unrelated legacy project documents are clearly marked obsolete or removed only with explicit project-owner approval.
 - [ ] Keep `docs/clonernews-plan.md` as the architecture decision summary.
