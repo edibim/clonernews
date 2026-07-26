@@ -114,4 +114,4 @@ export const updatesFixture = Object.freeze({
   profiles: ["alice"],
 });
 
-export const maxItemFixture = 6000;
+export const maxItemFixture = 6000; 
