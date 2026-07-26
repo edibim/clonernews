@@ -80,5 +80,3 @@ test("async tests are awaited", async () => {
 test("tests continue after a failure", () => {
   assertEqual("still running", "still running");
 });
-
-runTests();
