@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>ClonerNews Tests</title>
+
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        padding: 2rem;
+      }
+
+      .test-pass {
+        color: green;
+      }
+
+      .test-fail {
+        color: red;
+      }
+
+      .test-summary {
+        margin-top: 2rem;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>ClonerNews Tests</h1>
+
+    <div id="test-results"></div>
+
+    <script type="module" src="./tests/runner.js"></script>
+  </body>
+</html>
