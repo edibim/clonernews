@@ -160,3 +160,37 @@ test("getKnownItemIds removes duplicate IDs", () => {
 
   assertEqual(knownIds.size, 1);
 });
+
+test("resetState clears selected post, comments, poll options, and live data", () => {
+  state.selectedPostId = 1001;
+
+  state.commentsByParent.set(1001, {
+    items: [{ id: 3001 }],
+  });
+
+  state.pollOptionsByPoll.set(1003, [
+    {
+      id: 2001,
+    },
+  ]);
+
+  state.live.lastSeenMaxItem = 5000;
+  state.live.changedItems.push({
+    id: 1001,
+  });
+  state.live.pendingNewCount = 3;
+  state.live.checking = true;
+  state.live.error = "Network error";
+
+  resetState();
+
+  assertEqual(state.selectedPostId, null);
+  assertEqual(state.commentsByParent.size, 0);
+  assertEqual(state.pollOptionsByPoll.size, 0);
+
+  assertEqual(state.live.lastSeenMaxItem, null);
+  assertEqual(state.live.changedItems.length, 0);
+  assertEqual(state.live.pendingNewCount, 0);
+  assertEqual(state.live.checking, false);
+  assertEqual(state.live.error, null);
+});
