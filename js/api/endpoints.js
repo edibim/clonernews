@@ -38,7 +38,7 @@ export function getFeedUrl(category) {
  * @returns {string}
  */
 export function getMaxItemUrl() {
-    return `${API_BASE_URL}/maxitem.json`;
+  return `${API_BASE_URL}/maxitem.json`;
 }
 
 /**
@@ -47,5 +47,5 @@ export function getMaxItemUrl() {
  * @returns {string}
  */
 export function getUpdatesUrl() {
-    return `${API_BASE_URL}/updates.json`;
+  return `${API_BASE_URL}/updates.json`;
 }
