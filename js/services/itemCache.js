@@ -17,7 +17,7 @@ export function getCachedItem(id) {
  * @param {unknown} item
  */
 export function setCachedItem(id, item) {
- itemCache.set(id, item);    
+  itemCache.set(id, item);
 }
 
 /**
@@ -26,12 +26,12 @@ export function setCachedItem(id, item) {
  * @param {number} id
  */
 export function deleteCachedItem(id) {
- itemCache.delete(id);
+  itemCache.delete(id);
 }
 
 /**
  * Clears all cached Hacker News items.
  */
 export function clearItemCache() {
- itemCache.clear();    
+  itemCache.clear();
 }
