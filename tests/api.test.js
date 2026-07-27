@@ -80,6 +80,48 @@ test("getUpdatesUrl builds the updates URL", () => {
   );
 });
 
+test("fetchJson preserves unknown fields from a successful response", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      body: {
+        id: 1001,
+        type: "story",
+        customField: "kept",
+      },
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+
+  try {
+    const data = await fetchJson("/item/1001.json");
+
+    assertEqual(data.customField, "kept");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchJson returns null for a successful null response", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      body: null,
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+
+  try {
+    const data = await fetchJson("/item/9999.json");
+
+    assertEqual(data, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("fetchJson returns parsed JSON for a successful response", async () => {
   const originalFetch = globalThis.fetch;
   const mockFetch = createMockFetch([
@@ -101,6 +143,76 @@ test("fetchJson returns parsed JSON for a successful response", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("fetchJson throws when JSON parsing fails", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      jsonError: new SyntaxError("Invalid JSON"),
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+  let receivedError = null;
+
+  try {
+    await fetchJson("/broken.json");
+  } catch (error) {
+    receivedError = error;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assertEqual(receivedError instanceof SyntaxError, true);
+  assertEqual(receivedError.message, "Invalid JSON");
+});
+
+test("fetchJson rethrows network failures", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      reject: new Error("Network unavailable"),
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+  let receivedError = null;
+
+  try {
+    await fetchJson("/offline.json");
+  } catch (error) {
+    receivedError = error;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assertEqual(receivedError instanceof Error, true);
+  assertEqual(receivedError.message, "Network unavailable");
+});
+
+test("fetchJson keeps abort errors distinguishable", async () => {
+  const originalFetch = globalThis.fetch;
+  const abortError = new DOMException("The operation was aborted.", "AbortError");
+  const mockFetch = createMockFetch([
+    {
+      reject: abortError,
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+  let receivedError = null;
+
+  try {
+    await fetchJson("/aborted.json");
+  } catch (error) {
+    receivedError = error;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assertEqual(receivedError, abortError);
+  assertEqual(receivedError.name, "AbortError");
 });
 
 test("fetchJson throws for an HTTP error response", async () => {
