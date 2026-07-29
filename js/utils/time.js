@@ -5,14 +5,29 @@
  * @returns {Array<{ time?: number }>}
  */
 export function sortNewestFirst(items) {
-  return [...items].sort((a, b) => {
-    if (a.time === undefined && b.time === undefined) return 0
-    if (a.time === undefined) return 1
-    if (b.time === undefined) return -1
-    if (a.time === b.time) return 0
+  const sortedItems = [...items];
 
-    return b.time - a.time
-  })
+  sortedItems.sort((a, b) => {
+    if (a.time === undefined && b.time === undefined) {
+      return 0;
+    }
+
+    if (a.time === undefined) {
+      return 1;
+    }
+
+    if (b.time === undefined) {
+      return -1;
+    }
+
+    if (a.time === b.time) {
+      return 0;
+    }
+
+    return b.time - a.time;
+  });
+
+  return sortedItems;
 }
 /**
  * Formats a Unix timestamp as relative time.
