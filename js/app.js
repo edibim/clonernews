@@ -1,3 +1,5 @@
+import { renderShell } from "./ui/shell.js";
+
 function initializeApp() {
   const app = document.querySelector("#app");
 
@@ -5,7 +7,7 @@ function initializeApp() {
     throw new Error("Application root was not found");
   }
 
-  console.log("ClonerNews initialized");
+  renderShell(app);
 }
 
 document.addEventListener("DOMContentLoaded", initializeApp);
