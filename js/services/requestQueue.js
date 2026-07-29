@@ -14,6 +14,9 @@ function createAbortError() {
   return error;
 }
 
+/**
+ * Starts queued requests while the active request count is below the limit.
+ */
 function processQueue() {
   while (activeCount < MAX_CONCURRENT_REQUESTS && queue.length > 0) {
     const entry = queue.shift();
@@ -48,6 +51,7 @@ function processQueue() {
 
         processQueue();
 
+        // Resolve after bookkeeping so callers see current queue statistics.
         entry.resolve(value);
       },
       (error) => {
@@ -59,6 +63,7 @@ function processQueue() {
 
         processQueue();
 
+        // Reject after bookkeeping so failed requests leave clean counters.
         entry.reject(error);
       },
     );

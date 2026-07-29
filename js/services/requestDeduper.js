@@ -2,6 +2,7 @@ const pendingRequests = new Map();
 
 /**
  * Shares one in-flight request per key.
+ * Failed requests are removed so a later call can retry the same key.
  *
  * @param {string} key
  * @param {() => Promise<unknown>} loader
@@ -14,6 +15,7 @@ export function dedupeRequest(key, loader) {
 
   let requestPromise;
 
+  // Start the loader immediately so simultaneous callers share this Promise.
   try {
     requestPromise = Promise.resolve(loader());
   } catch (error) {

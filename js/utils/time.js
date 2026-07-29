@@ -1,5 +1,6 @@
 /**
  * Sorts items by numeric time from newest to oldest.
+ * Items without a valid numeric time stay after timed items.
  *
  * @param {Array<{ time?: number }>} items
  * @returns {Array<{ time?: number }>}
@@ -35,6 +36,7 @@ export function sortNewestFirst(items) {
 
 /**
  * Formats a Unix timestamp as relative time.
+ * Invalid input returns a stable fallback for missing API data.
  *
  * @param {number} unixSeconds
  * @param {number} nowSeconds
@@ -66,6 +68,13 @@ export function formatRelativeTime(unixSeconds, nowSeconds) {
   return formatUnit(Math.floor(elapsedHours / 24), "day");
 }
 
+/**
+ * Formats a relative time value with the correct singular or plural unit.
+ *
+ * @param {number} value
+ * @param {string} unit
+ * @returns {string}
+ */
 function formatUnit(value, unit) {
   const suffix = value === 1 ? unit : `${unit}s`;
 

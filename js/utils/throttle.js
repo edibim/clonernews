@@ -1,5 +1,6 @@
 /**
  * Creates a throttled function.
+ * Runs immediately, then keeps the latest call for the trailing run.
  *
  * @param {Function} fn
  * @param {number} waitMs
@@ -15,6 +16,7 @@ export function throttle(fn, waitMs) {
     const now = Date.now();
     const remainingMs = waitMs - (now - lastInvokedAt);
 
+    // The first call runs immediately so user actions feel responsive.
     if (remainingMs <= 0 || lastInvokedAt === 0) {
       if (trailingTimer) {
         clearTimeout(trailingTimer);
@@ -28,6 +30,7 @@ export function throttle(fn, waitMs) {
       return fn.apply(this, args);
     }
 
+    // Calls inside the wait window update the trailing call with the latest data.
     trailingArgs = args;
     trailingThis = this;
 

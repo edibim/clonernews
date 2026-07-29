@@ -29,6 +29,7 @@ const SAFE_LINK_PROTOCOLS = new Set([
 
 /**
  * Sanitizes untrusted HTML.
+ * Keeps only the Hacker News formatting elements that the UI supports.
  *
  * @param {string} value
  * @returns {string}
@@ -57,6 +58,11 @@ export function setSanitizedHTML(element, value) {
   element.innerHTML = sanitizeHTML(value);
 }
 
+/**
+ * Sanitizes every element child inside a parent node.
+ *
+ * @param {ParentNode} parent
+ */
 function sanitizeChildren(parent) {
   for (const child of [...parent.childNodes]) {
     if (child.nodeType === Node.ELEMENT_NODE) {
@@ -65,6 +71,11 @@ function sanitizeChildren(parent) {
   }
 }
 
+/**
+ * Removes dangerous elements, unwraps unknown elements, and cleans allowed ones.
+ *
+ * @param {Element} element
+ */
 function sanitizeElement(element) {
   if (CONTENT_REMOVAL_ELEMENTS.has(element.tagName)) {
     element.remove();
@@ -81,6 +92,11 @@ function sanitizeElement(element) {
   sanitizeAttributes(element);
 }
 
+/**
+ * Removes unsafe attributes and keeps only safe href values on links.
+ *
+ * @param {Element} element
+ */
 function sanitizeAttributes(element) {
   if (element.tagName !== "A") {
     removeAllAttributes(element);
@@ -100,12 +116,23 @@ function sanitizeAttributes(element) {
   element.setAttribute("rel", "noopener noreferrer nofollow");
 }
 
+/**
+ * Removes every attribute from an element.
+ *
+ * @param {Element} element
+ */
 function removeAllAttributes(element) {
   for (const attribute of [...element.attributes]) {
     element.removeAttribute(attribute.name);
   }
 }
 
+/**
+ * Checks whether a link uses a protocol allowed by the sanitizer.
+ *
+ * @param {string | null} href
+ * @returns {boolean}
+ */
 function isSafeHref(href) {
   if (!href) {
     return false;
