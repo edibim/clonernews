@@ -7,6 +7,9 @@ const CATEGORY_LABELS = Object.freeze({
   polls: "Polls",
 });
 
+let shellRoot = null;
+let onCategoryChange = null;
+
 /**
  * Renders the stable application landmarks.
  *
@@ -18,19 +21,61 @@ export function renderShell(root, options = {}) {
     throw new TypeError("A valid application root is required");
   }
 
+  shellRoot = root;
+  onCategoryChange =
+    typeof options.onCategoryChange === "function"
+      ? options.onCategoryChange
+      : null;
+
   root.replaceChildren(
     createHeader(),
     createMain(),
     createDetailDialog(),
   );
+
+  bindCategoryNavigation();
+  initializeActiveCategory();
 }
 
-export function setActiveCategory() {
-  throw new Error("setActiveCategory is not implemented");
+/**
+ * Selects a category without replacing any category's stored feed state.
+ *
+ * @param {string} category
+ */
+export function setActiveCategory(category) {
+  if (!CATEGORIES.includes(category)) {
+    throw new Error(`Unsupported category: ${category}`);
+  }
+
+  state.activeCategory = category;
+
+  renderActiveFeedState();
+  initializeActiveCategory();
 }
 
+/**
+ * Synchronizes the visible tabs and heading with application state.
+ */
 export function renderActiveFeedState() {
-  throw new Error("renderActiveFeedState is not implemented");
+  if (!shellRoot) {
+    throw new Error("The application shell has not been rendered");
+  }
+
+  for (const tab of shellRoot.querySelectorAll('[role="tab"]')) {
+    const isActive = tab.dataset.category === state.activeCategory;
+
+    tab.setAttribute("aria-selected", String(isActive));
+    tab.tabIndex = isActive ? 0 : -1;
+  }
+
+  const heading = shellRoot.querySelector("#feed-heading");
+  const feedPanel = shellRoot.querySelector("#feed-panel");
+
+  heading.textContent = CATEGORY_LABELS[state.activeCategory];
+  feedPanel.setAttribute(
+    "aria-labelledby",
+    `tab-${state.activeCategory}`,
+  );
 }
 
 export function showStatus() {
@@ -139,4 +184,86 @@ function createDetailDialog() {
   dialog.append(heading, closeButton, content);
 
   return dialog;
+}
+
+function bindCategoryNavigation() {
+  const tabList = shellRoot.querySelector('[role="tablist"]');
+
+  tabList.addEventListener("click", (event) => {
+    const tab = getCategoryTab(event.target);
+
+    if (tab) {
+      setActiveCategory(tab.dataset.category);
+    }
+  });
+
+  tabList.addEventListener("keydown", (event) => {
+    const currentTab = getCategoryTab(event.target);
+
+    if (!currentTab) {
+      return;
+    }
+
+    const tabs = [...tabList.querySelectorAll('[role="tab"]')];
+    const currentIndex = tabs.indexOf(currentTab);
+    const nextIndex = getNextTabIndex(
+      event.key,
+      currentIndex,
+      tabs.length,
+    );
+
+    if (nextIndex === null) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const nextTab = tabs[nextIndex];
+
+    nextTab.focus();
+    setActiveCategory(nextTab.dataset.category);
+  });
+}
+
+function getCategoryTab(target) {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const tab = target.closest('[role="tab"]');
+
+  if (!tab || !shellRoot.contains(tab)) {
+    return null;
+  }
+
+  return tab;
+}
+
+function getNextTabIndex(key, currentIndex, tabCount) {
+  switch (key) {
+    case "ArrowRight":
+    case "ArrowDown":
+      return (currentIndex + 1) % tabCount;
+    case "ArrowLeft":
+    case "ArrowUp":
+      return (currentIndex - 1 + tabCount) % tabCount;
+    case "Home":
+      return 0;
+    case "End":
+      return tabCount - 1;
+    default:
+      return null;
+  }
+}
+
+function initializeActiveCategory() {
+  const activeFeed = state.feeds[state.activeCategory];
+
+  if (
+    onCategoryChange &&
+    !activeFeed.initialized &&
+    !activeFeed.loading
+  ) {
+    onCategoryChange(state.activeCategory);
+  }
 }
