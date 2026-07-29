@@ -30,8 +30,15 @@ function processQueue() {
     entry.started = true;
     activeCount += 1;
 
-    Promise.resolve()
-      .then(entry.loader)
+    let requestPromise;
+
+    try {
+      requestPromise = Promise.resolve(entry.loader());
+    } catch (error) {
+      requestPromise = Promise.reject(error);
+    }
+
+    requestPromise
       .then(entry.resolve, entry.reject)
       .finally(() => {
         activeCount = Math.max(0, activeCount - 1);

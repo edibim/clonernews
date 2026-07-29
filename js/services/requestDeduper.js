@@ -12,13 +12,24 @@ export function dedupeRequest(key, loader) {
     return pendingRequests.get(key);
   }
 
-  const requestPromise = Promise.resolve().then(loader);
+  let requestPromise;
+
+  try {
+    requestPromise = Promise.resolve(loader());
+  } catch (error) {
+    requestPromise = Promise.reject(error);
+  }
 
   pendingRequests.set(key, requestPromise);
 
-  requestPromise.finally(() => {
-    pendingRequests.delete(key);
-  });
+  requestPromise.then(
+    () => {
+      pendingRequests.delete(key);
+    },
+    () => {
+      pendingRequests.delete(key);
+    },
+  );
 
   return requestPromise;
 }
