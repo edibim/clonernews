@@ -315,21 +315,21 @@ Create a runnable static site and a dependency-free browser test runner.
 
 ## Tests First
 
-- [ ] The test runner discovers registered tests.
-- [ ] The runner reports passing and failing assertions separately.
-- [ ] One failing test does not prevent later tests from running.
-- [ ] Async tests are awaited.
-- [ ] Mock fetch records URL and option data.
-- [ ] Mock fetch can return JSON, null, an HTTP error, and a rejected request.
+- [x] The test runner discovers registered tests.
+- [x] The runner reports passing and failing assertions separately.
+- [x] One failing test does not prevent later tests from running.
+- [x] Async tests are awaited.
+- [x] Mock fetch records URL and option data.
+- [x] Mock fetch can return JSON, null, an HTTP error, and a rejected request.
 
 ## Implementation Tasks
 
-- [ ] Add semantic page landmarks: header, category navigation, live region, feed, sentinel, and detail dialog.
-- [ ] Load `js/app.js` with `type="module"`.
-- [ ] Add `tests.html` that loads the test runner and all test modules.
-- [ ] Add deterministic fixtures for story, job, poll, poll option, direct comment, nested reply, deleted item, dead item, and null API response.
-- [ ] Add basic CSS tokens and a readable no-JavaScript message.
-- [ ] Confirm both pages load through `python3 -m http.server 8000`.
+- [x] Add semantic page landmarks: header, category navigation, live region, feed, sentinel, and detail dialog.
+- [x] Load `js/app.js` with `type="module"`.
+- [x] Add `tests.html` that loads the test runner and all test modules.
+- [x] Add deterministic fixtures for story, job, poll, poll option, direct comment, nested reply, deleted item, dead item, and null API response.
+- [x] Add basic CSS tokens and a readable no-JavaScript message.
+- [x] Confirm both pages load through `python3 -m http.server 8000`.
 
 ## Audit Note
 
@@ -380,18 +380,18 @@ export function getKnownItemIds();
 
 ## Tests First
 
-- [ ] Default category is `stories`.
-- [ ] Every category receives independent feed arrays and loading flags.
-- [ ] Reset creates fresh Maps and arrays rather than reusing mutated values.
-- [ ] Known item IDs include feed items, selected post, loaded comments, and poll options without duplicates.
-- [ ] Fixed configuration matches the values documented above.
+- [x] Default category is `stories`.
+- [x] Every category receives independent feed arrays and loading flags.
+- [x] Reset creates fresh Maps and arrays rather than reusing mutated values.
+- [x] Known item IDs include feed items, selected post, loaded comments, and poll options without duplicates.
+- [x] Fixed configuration matches the values documented above.
 
 ## Implementation Tasks
 
-- [ ] Add JSDoc types for API items, feed state, comment state, and live state.
-- [ ] Freeze configuration collections that must not be mutated.
-- [ ] Keep API data out of DOM elements and DOM nodes out of state.
-- [ ] Provide explicit state reset behavior for deterministic tests.
+- [x] Add JSDoc types for API items, feed state, comment state, and live state.
+- [x] Freeze configuration collections that must not be mutated.
+- [x] Keep API data out of DOM elements and DOM nodes out of state.
+- [x] Provide explicit state reset behavior for deterministic tests.
 
 ## Commit
 
@@ -444,12 +444,12 @@ export async function requestUpdates({ signal } = {});
 
 ## Tests First
 
-- [ ] Item URL is correct for a valid ID.
-- [ ] Stories and Jobs use the correct list endpoints.
-- [ ] Requesting a Polls list throws a clear unsupported-feed error.
-- [ ] Max item and updates URLs are correct.
-- [ ] Invalid item IDs fail before calling fetch.
-- [ ] JSON success, null, HTTP error, malformed JSON, network rejection, and abort are handled.
+- [x] Item URL is correct for a valid ID.
+- [x] Stories and Jobs use the correct list endpoints.
+- [x] Requesting a Polls list throws a clear unsupported-feed error.
+- [x] Max item and updates URLs are correct.
+- [x] Invalid item IDs fail before calling fetch.
+- [x] JSON success, null, HTTP error, malformed JSON, network rejection, and abort are handled.
 
 ## Commit
 
@@ -510,13 +510,13 @@ export async function fetchItems(ids, options = {});
 
 ## Tests First
 
-- [ ] Cached items avoid a second network call.
-- [ ] Two simultaneous requests for one ID share one network call.
-- [ ] Force refresh bypasses the completed cache.
-- [ ] A failed pending request is removed and can be retried.
-- [ ] Six requests run concurrently; the seventh waits.
-- [ ] Queue counters return to zero after success, error, and abort.
-- [ ] Duplicate IDs passed to `fetchItems` are requested once.
+- [x] Cached items avoid a second network call.
+- [x] Two simultaneous requests for one ID share one network call.
+- [x] Force refresh bypasses the completed cache.
+- [x] A failed pending request is removed and can be retried.
+- [x] Six requests run concurrently; the seventh waits.
+- [x] Queue counters return to zero after success, error, and abort.
+- [x] Duplicate IDs passed to `fetchItems` are requested once.
 
 ## Audit Note
 
@@ -573,15 +573,15 @@ Rules:
 
 ## Tests First
 
-- [ ] Newest-first sorting uses numeric `time`.
-- [ ] Missing times sort last and equal times remain stable.
-- [ ] Input arrays are not mutated.
-- [ ] Relative time covers seconds, minutes, hours, days, and invalid input.
-- [ ] Allowed formatting survives sanitization.
-- [ ] Scripts, event attributes, iframes, and `javascript:` links are removed.
-- [ ] Plain text remains unchanged.
-- [ ] Throttle invokes immediately, blocks calls inside the window, and uses the latest trailing arguments.
-- [ ] Throttled functions preserve `this`.
+- [x] Newest-first sorting uses numeric `time`.
+- [x] Missing times sort last and equal times remain stable.
+- [x] Input arrays are not mutated.
+- [x] Relative time covers seconds, minutes, hours, days, and invalid input.
+- [x] Allowed formatting survives sanitization.
+- [x] Scripts, event attributes, iframes, and `javascript:` links are removed.
+- [x] Plain text remains unchanged.
+- [x] Throttle invokes immediately, blocks calls inside the window, and uses the latest trailing arguments.
+- [x] Throttled functions preserve `this`.
 
 ## Commit
 
