@@ -753,12 +753,12 @@ export function renderPostDetail(item);
 
 ## Tests First
 
-- [ ] Story, job, and poll fixtures produce their required metadata.
-- [ ] Missing optional fields do not throw.
-- [ ] Unsafe titles and text are sanitized.
-- [ ] Invalid external URLs are not rendered as clickable links.
-- [ ] Deleted/null selected items show a stable unavailable state.
-- [ ] Stale detail responses cannot replace the currently selected post.
+- [x] Story, job, and poll fixtures produce their required metadata.
+- [x] Missing optional fields do not throw.
+- [x] Unsafe titles and text are sanitized.
+- [x] Invalid external URLs are not rendered as clickable links.
+- [x] Deleted/null selected items show a stable unavailable state.
+- [x] Stale detail responses cannot replace the currently selected post.
 
 ## Commit
 
