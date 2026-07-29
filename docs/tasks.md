@@ -674,14 +674,14 @@ export function isVisibleTopLevelItem(item, category);
 
 ## Tests First
 
-- [ ] Initial load requests one list and only enough item IDs for one batch.
-- [ ] Second load begins at the saved cursor.
-- [ ] Results are newest-first regardless of source order.
-- [ ] Null, dead, deleted, and wrong-type records are excluded.
-- [ ] Duplicate IDs do not create duplicate cards.
-- [ ] Concurrent Load more calls result in one batch.
-- [ ] Failed loading exposes retry and does not advance the cursor past unprocessed IDs.
-- [ ] Exhausted feeds disable Load more.
+- [x] Initial load requests one list and only enough item IDs for one batch.
+- [x] Second load begins at the saved cursor.
+- [x] Results are newest-first regardless of source order.
+- [x] Null, dead, deleted, and wrong-type records are excluded.
+- [x] Duplicate IDs do not create duplicate cards.
+- [x] Concurrent Load more calls result in one batch.
+- [x] Failed loading exposes retry and does not advance the cursor past unprocessed IDs.
+- [x] Exhausted feeds disable Load more.
 
 ## Audit Note
 
