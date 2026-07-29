@@ -12,6 +12,7 @@ import { state } from "../state.js";
 import { sortNewestFirst } from "../utils/time.js";
 
 let activeDiscoveryPromise = null;
+const activeOptionRequests = new Map();
 
 /**
  * Discovers a bounded, cached Polls feed.
@@ -43,12 +44,63 @@ export async function discoverPolls({ signal } = {}) {
   }
 }
 
-export async function loadPollOptions() {
-  throw new Error("loadPollOptions is not implemented");
+/**
+ * Loads and caches a poll's options in API parts order.
+ *
+ * @param {object} poll
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<Array<object>>}
+ */
+export async function loadPollOptions(
+  poll,
+  { signal } = {},
+) {
+  if (
+    !poll ||
+    !Number.isSafeInteger(poll.id) ||
+    poll.id <= 0
+  ) {
+    return [];
+  }
+
+  if (state.pollOptionsByPoll.has(poll.id)) {
+    return state.pollOptionsByPoll.get(poll.id);
+  }
+
+  if (activeOptionRequests.has(poll.id)) {
+    return activeOptionRequests.get(poll.id);
+  }
+
+  const optionRequest = fetchPollOptions(poll, signal);
+
+  activeOptionRequests.set(poll.id, optionRequest);
+
+  try {
+    return await optionRequest;
+  } finally {
+    if (activeOptionRequests.get(poll.id) === optionRequest) {
+      activeOptionRequests.delete(poll.id);
+    }
+  }
 }
 
-export function validatePollOption() {
-  throw new Error("validatePollOption is not implemented");
+/**
+ * Validates an option's type and parent poll relationship.
+ *
+ * @param {object|null} option
+ * @param {number} pollId
+ * @returns {boolean}
+ */
+export function validatePollOption(option, pollId) {
+  return Boolean(
+    option &&
+      Number.isSafeInteger(option.id) &&
+      option.id > 0 &&
+      option.type === "pollopt" &&
+      option.poll === pollId &&
+      !option.dead &&
+      !option.deleted,
+  );
 }
 
 async function runPollDiscovery(feed, signal) {
@@ -153,4 +205,58 @@ function isValidPoll(item) {
       !item.dead &&
       !item.deleted,
   );
+}
+
+async function fetchPollOptions(poll, signal) {
+  const partIds = Array.isArray(poll.parts)
+    ? poll.parts
+    : [];
+  const optionResults = await Promise.all(
+    partIds.map((partId) =>
+      fetchPollOption(partId, signal),
+    ),
+  );
+  const options = optionResults.map((option, index) => {
+    const partId = partIds[index];
+
+    if (
+      validatePollOption(option, poll.id) &&
+      option.id === partId
+    ) {
+      return option;
+    }
+
+    return createUnavailableOption(partId, poll.id);
+  });
+
+  state.pollOptionsByPoll.set(poll.id, options);
+
+  return options;
+}
+
+async function fetchPollOption(partId, signal) {
+  if (!Number.isSafeInteger(partId) || partId <= 0) {
+    return null;
+  }
+
+  try {
+    return await fetchItem(partId, { signal });
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw error;
+    }
+
+    return null;
+  }
+}
+
+function createUnavailableOption(partId, pollId) {
+  return {
+    id: Number.isSafeInteger(partId) ? partId : null,
+    poll: pollId,
+    score: null,
+    text: "Option unavailable",
+    type: "pollopt",
+    unavailable: true,
+  };
 }
