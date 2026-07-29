@@ -38,9 +38,8 @@ function processQueue() {
       requestPromise = Promise.reject(error);
     }
 
-    requestPromise
-      .then(entry.resolve, entry.reject)
-      .finally(() => {
+    requestPromise.then(
+      (value) => {
         activeCount = Math.max(0, activeCount - 1);
 
         if (entry.signal && entry.abortHandler) {
@@ -48,7 +47,21 @@ function processQueue() {
         }
 
         processQueue();
-      });
+
+        entry.resolve(value);
+      },
+      (error) => {
+        activeCount = Math.max(0, activeCount - 1);
+
+        if (entry.signal && entry.abortHandler) {
+          entry.signal.removeEventListener("abort", entry.abortHandler);
+        }
+
+        processQueue();
+
+        entry.reject(error);
+      },
+    );
   }
 }
 
