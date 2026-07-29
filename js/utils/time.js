@@ -8,15 +8,18 @@ export function sortNewestFirst(items) {
   const sortedItems = [...items];
 
   sortedItems.sort((a, b) => {
-    if (a.time === undefined && b.time === undefined) {
+    const aHasTime = Number.isFinite(a.time);
+    const bHasTime = Number.isFinite(b.time);
+
+    if (!aHasTime && !bHasTime) {
       return 0;
     }
 
-    if (a.time === undefined) {
+    if (!aHasTime) {
       return 1;
     }
 
-    if (b.time === undefined) {
+    if (!bHasTime) {
       return -1;
     }
 
@@ -29,6 +32,7 @@ export function sortNewestFirst(items) {
 
   return sortedItems;
 }
+
 /**
  * Formats a Unix timestamp as relative time.
  *
@@ -36,4 +40,34 @@ export function sortNewestFirst(items) {
  * @param {number} nowSeconds
  * @returns {string}
  */
-export function formatRelativeTime(unixSeconds, nowSeconds) {}
+export function formatRelativeTime(unixSeconds, nowSeconds) {
+  if (!Number.isFinite(unixSeconds) || !Number.isFinite(nowSeconds)) {
+    return "unknown time";
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor(nowSeconds - unixSeconds));
+
+  if (elapsedSeconds < 60) {
+    return formatUnit(elapsedSeconds, "second");
+  }
+
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+
+  if (elapsedMinutes < 60) {
+    return formatUnit(elapsedMinutes, "minute");
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+
+  if (elapsedHours < 24) {
+    return formatUnit(elapsedHours, "hour");
+  }
+
+  return formatUnit(Math.floor(elapsedHours / 24), "day");
+}
+
+function formatUnit(value, unit) {
+  const suffix = value === 1 ? unit : `${unit}s`;
+
+  return `${value} ${suffix} ago`;
+}
