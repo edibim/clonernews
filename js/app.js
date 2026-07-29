@@ -2,6 +2,7 @@ import {
   initializeFeed,
   loadNextPage,
 } from "./features/feed.js";
+import { discoverPolls } from "./features/polls.js";
 import { state } from "./state.js";
 import {
   closePostDetail,
@@ -21,6 +22,8 @@ function initializeApp() {
     onCategoryChange(category) {
       if (isProgressiveCategory(category)) {
         void runFeedOperation(app, category, initializeFeed);
+      } else if (category === "polls") {
+        void runPollDiscovery(app);
       }
     },
     onCategorySelect(category) {
@@ -32,6 +35,17 @@ function initializeApp() {
     .querySelector("#load-more")
     .addEventListener("click", () => {
       const category = state.activeCategory;
+
+      if (category === "polls") {
+        if (
+          !state.feeds.polls.initialized &&
+          !state.feeds.polls.loading
+        ) {
+          void runPollDiscovery(app);
+        }
+
+        return;
+      }
 
       if (!isProgressiveCategory(category)) {
         return;
@@ -87,4 +101,16 @@ async function runFeedOperation(root, category, operation) {
 
 function isProgressiveCategory(category) {
   return category === "stories" || category === "jobs";
+}
+
+async function runPollDiscovery(root) {
+  const request = discoverPolls();
+
+  renderFeedView(root, "polls");
+
+  await request;
+
+  if (state.activeCategory === "polls") {
+    renderFeedView(root, "polls");
+  }
 }

@@ -5,7 +5,12 @@ import {
   loadPollOptions,
   validatePollOption,
 } from "../js/features/polls.js";
-import { renderPollOptions } from "../js/ui/detailView.js";
+import {
+  closePostDetail,
+  openPostDetail,
+  renderPollOptions,
+} from "../js/ui/detailView.js";
+import { renderShell } from "../js/ui/shell.js";
 import { resetState, state } from "../js/state.js";
 import { clearItemCache } from "../js/services/itemCache.js";
 import { clearPendingRequests } from "../js/services/requestDeduper.js";
@@ -298,4 +303,56 @@ test("poll option rendering shows scores and unavailable placeholders", () => {
   assert(view.textContent.includes("12 points"));
   assert(view.textContent.includes("Option unavailable"));
   assert(view.querySelector("strong"));
+});
+
+test("opening a poll detail renders its validated options", async () => {
+  resetPollTestState();
+
+  const poll = createPoll(98_000, 100, [98_001]);
+  const root = document.createElement("div");
+
+  document.body.append(root);
+  renderShell(root);
+
+  const dialog = root.querySelector("#post-detail");
+
+  dialog.showModal = () => {
+    dialog.setAttribute("open", "");
+  };
+  dialog.close = () => {
+    dialog.removeAttribute("open");
+  };
+
+  try {
+    await withMockFetch(
+      [
+        { body: poll },
+        {
+          body: createOption(
+            98_001,
+            poll.id,
+            "Visible option",
+            7,
+          ),
+        },
+      ],
+      async () => {
+        await openPostDetail(poll.id);
+      },
+    );
+
+    assert(
+      root
+        .querySelector("#detail-content")
+        .textContent.includes("Visible option"),
+    );
+    assert(
+      root
+        .querySelector("#detail-content")
+        .textContent.includes("7 points"),
+    );
+  } finally {
+    closePostDetail();
+    root.remove();
+  }
 });

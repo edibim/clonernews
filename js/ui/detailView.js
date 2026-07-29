@@ -1,4 +1,8 @@
 import { fetchItem } from "../api/client.js";
+import {
+  loadPollOptions,
+  validatePollOption,
+} from "../features/polls.js";
 import { state } from "../state.js";
 import { setSanitizedHTML } from "../utils/html.js";
 import { formatRelativeTime } from "../utils/time.js";
@@ -57,8 +61,31 @@ export async function openPostDetail(itemId) {
       return null;
     }
 
+    const detail = renderPostDetail(item);
+
+    if (
+      item &&
+      item.type === "poll" &&
+      !item.dead &&
+      !item.deleted
+    ) {
+      const options = await loadPollOptions(item, { signal });
+
+      if (!isCurrentDetailRequest(itemId, requestVersion)) {
+        return null;
+      }
+
+      const optionsHeading = document.createElement("h4");
+
+      optionsHeading.textContent = "Poll options";
+      detail.append(
+        optionsHeading,
+        renderPollOptions(item, options),
+      );
+    }
+
     content.removeAttribute("aria-busy");
-    content.replaceChildren(renderPostDetail(item));
+    content.replaceChildren(detail);
 
     return item;
   } catch (error) {
@@ -209,8 +236,49 @@ export function renderPostDetail(item) {
   return article;
 }
 
-export function renderPollOptions() {
-  throw new Error("renderPollOptions is not implemented");
+/**
+ * Renders poll options in their original parts order.
+ *
+ * @param {object} poll
+ * @param {Array<object>} options
+ * @returns {HTMLOListElement}
+ */
+export function renderPollOptions(poll, options) {
+  const list = document.createElement("ol");
+
+  list.className = "poll-options";
+  list.setAttribute("aria-label", "Poll options");
+
+  for (const option of Array.isArray(options) ? options : []) {
+    const listItem = document.createElement("li");
+
+    listItem.dataset.optionId = String(option.id || "");
+
+    if (
+      option.unavailable ||
+      !validatePollOption(option, poll.id) ||
+      !option.text
+    ) {
+      listItem.className = "poll-option-unavailable";
+      listItem.textContent = "Option unavailable";
+      list.append(listItem);
+      continue;
+    }
+
+    const text = document.createElement("div");
+    const score = document.createElement("p");
+
+    text.className = "poll-option-text";
+    setSanitizedHTML(text, option.text);
+
+    score.className = "poll-option-score";
+    score.textContent = formatCount(option.score, "point");
+
+    listItem.append(text, score);
+    list.append(listItem);
+  }
+
+  return list;
 }
 
 function isAvailablePost(item) {

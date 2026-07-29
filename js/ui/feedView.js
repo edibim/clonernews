@@ -34,7 +34,8 @@ export function renderFeedView(root, category) {
   feedList.dataset.category = category;
   feedList.setAttribute("aria-busy", String(feed.loading));
   renderFeedItems(feedList, feed.items);
-  loadMoreButton.hidden = category === "polls";
+  loadMoreButton.hidden =
+    category === "polls" && !feed.error;
 
   if (feed.loading) {
     setStatus(
