@@ -300,3 +300,28 @@ test("an exhausted feed disables Load more", () => {
     root.remove();
   }
 });
+
+test("an active feed request disables Load more", () => {
+  resetFeedTestState();
+
+  const root = document.createElement("div");
+  document.body.append(root);
+
+  try {
+    renderShell(root);
+
+    state.feeds.stories.loading = true;
+    renderFeedView(root, "stories");
+
+    const loadMoreButton = root.querySelector("#load-more");
+
+    assertEqual(loadMoreButton.disabled, true);
+    assertEqual(loadMoreButton.textContent, "Loading...");
+    assertEqual(
+      root.querySelector("#feed-list").getAttribute("aria-busy"),
+      "true",
+    );
+  } finally {
+    root.remove();
+  }
+});

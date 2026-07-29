@@ -9,12 +9,16 @@ const CATEGORY_LABELS = Object.freeze({
 
 let shellRoot = null;
 let onCategoryChange = null;
+let onCategorySelect = null;
 
 /**
  * Renders the stable application landmarks.
  *
  * @param {HTMLElement} root
- * @param {{ onCategoryChange?: (category: string) => void }} [options]
+ * @param {{
+ *   onCategoryChange?: (category: string) => void,
+ *   onCategorySelect?: (category: string) => void
+ * }} [options]
  */
 export function renderShell(root, options = {}) {
   if (!(root instanceof HTMLElement)) {
@@ -26,6 +30,10 @@ export function renderShell(root, options = {}) {
     typeof options.onCategoryChange === "function"
       ? options.onCategoryChange
       : null;
+  onCategorySelect =
+    typeof options.onCategorySelect === "function"
+      ? options.onCategorySelect
+      : null;
 
   root.replaceChildren(
     createHeader(),
@@ -35,6 +43,7 @@ export function renderShell(root, options = {}) {
 
   bindCategoryNavigation();
   bindDetailDialog();
+  notifyCategorySelection();
   initializeActiveCategory();
 }
 
@@ -51,6 +60,7 @@ export function setActiveCategory(category) {
   state.activeCategory = category;
 
   renderActiveFeedState();
+  notifyCategorySelection();
   initializeActiveCategory();
 }
 
@@ -300,5 +310,11 @@ function initializeActiveCategory() {
     !activeFeed.loading
   ) {
     onCategoryChange(state.activeCategory);
+  }
+}
+
+function notifyCategorySelection() {
+  if (onCategorySelect) {
+    onCategorySelect(state.activeCategory);
   }
 }
