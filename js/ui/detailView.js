@@ -209,6 +209,10 @@ export function renderPostDetail(item) {
   return article;
 }
 
+export function renderPollOptions() {
+  throw new Error("renderPollOptions is not implemented");
+}
+
 function isAvailablePost(item) {
   return Boolean(
     item &&
