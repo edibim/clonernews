@@ -68,6 +68,7 @@ test("initial feed load requests one list and one 15-ID batch", async () => {
     ],
     async (mockFetch) => {
       await initializeFeed("stories");
+      await initializeFeed("stories");
 
       assertEqual(mockFetch.calls.length, 16);
       assertEqual(
