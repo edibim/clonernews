@@ -1,3 +1,5 @@
+import { fetchItem } from "../api/client.js";
+import { state } from "../state.js";
 import { setSanitizedHTML } from "../utils/html.js";
 import { formatRelativeTime } from "../utils/time.js";
 
@@ -7,12 +9,110 @@ const SUPPORTED_POST_TYPES = new Set([
   "poll",
 ]);
 
-export async function openPostDetail() {
-  throw new Error("openPostDetail is not implemented");
+let activeDetailController = null;
+let detailRequestVersion = 0;
+let returnFocusElement = null;
+
+/**
+ * Opens the detail dialog and renders the selected item when it resolves.
+ *
+ * @param {number} itemId
+ * @returns {Promise<object|null>}
+ */
+export async function openPostDetail(itemId) {
+  const { content, dialog } = getDetailElements();
+
+  if (!Number.isSafeInteger(itemId) || itemId <= 0) {
+    content.replaceChildren(renderPostDetail(null));
+    openDialog(dialog);
+    return null;
+  }
+
+  if (activeDetailController) {
+    activeDetailController.abort();
+  }
+
+  activeDetailController = new AbortController();
+  detailRequestVersion += 1;
+
+  const requestVersion = detailRequestVersion;
+  const signal = activeDetailController.signal;
+
+  state.selectedPostId = itemId;
+  returnFocusElement =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+  content.setAttribute("aria-busy", "true");
+  content.replaceChildren(
+    createDetailStatus("Loading post...", "loading"),
+  );
+  openDialog(dialog);
+
+  try {
+    const item = await fetchItem(itemId, { signal });
+
+    if (!isCurrentDetailRequest(itemId, requestVersion)) {
+      return null;
+    }
+
+    content.removeAttribute("aria-busy");
+    content.replaceChildren(renderPostDetail(item));
+
+    return item;
+  } catch (error) {
+    if (!isCurrentDetailRequest(itemId, requestVersion)) {
+      return null;
+    }
+
+    content.removeAttribute("aria-busy");
+
+    if (error && error.name === "AbortError") {
+      return null;
+    }
+
+    content.replaceChildren(
+      createDetailStatus(
+        "Unable to load this post. Try again.",
+        "error",
+      ),
+    );
+
+    return null;
+  } finally {
+    if (requestVersion === detailRequestVersion) {
+      activeDetailController = null;
+    }
+  }
 }
 
+/**
+ * Cancels active detail work and closes the dialog.
+ */
 export function closePostDetail() {
-  throw new Error("closePostDetail is not implemented");
+  if (activeDetailController) {
+    activeDetailController.abort();
+    activeDetailController = null;
+  }
+
+  detailRequestVersion += 1;
+  state.selectedPostId = null;
+
+  const dialog = document.querySelector("#post-detail");
+
+  if (dialog && dialog.open) {
+    dialog.close();
+  }
+
+  if (
+    returnFocusElement &&
+    returnFocusElement.isConnected
+  ) {
+    returnFocusElement.focus();
+  }
+
+  returnFocusElement = null;
 }
 
 /**
@@ -227,4 +327,42 @@ function formatCount(value, singularLabel) {
       : `${singularLabel}s`;
 
   return `${normalizedValue} ${label}`;
+}
+
+function getDetailElements() {
+  const dialog = document.querySelector("#post-detail");
+  const content = document.querySelector("#detail-content");
+
+  if (!dialog || !content) {
+    throw new Error("The post detail dialog is not available");
+  }
+
+  return {
+    content,
+    dialog,
+  };
+}
+
+function openDialog(dialog) {
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+}
+
+function isCurrentDetailRequest(itemId, requestVersion) {
+  return (
+    state.selectedPostId === itemId &&
+    detailRequestVersion === requestVersion
+  );
+}
+
+function createDetailStatus(message, kind) {
+  const status = document.createElement("p");
+
+  status.className = "detail-status";
+  status.dataset.kind = kind;
+  status.setAttribute("role", "status");
+  status.textContent = message;
+
+  return status;
 }
