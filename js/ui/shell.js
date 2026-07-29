@@ -34,6 +34,7 @@ export function renderShell(root, options = {}) {
   );
 
   bindCategoryNavigation();
+  bindDetailDialog();
   initializeActiveCategory();
 }
 
@@ -78,8 +79,26 @@ export function renderActiveFeedState() {
   );
 }
 
-export function showStatus() {
-  throw new Error("showStatus is not implemented");
+/**
+ * Updates the feed's polite announcement region.
+ *
+ * @param {string} message
+ * @param {string} [kind="info"]
+ */
+export function showStatus(message, kind = "info") {
+  if (!shellRoot) {
+    throw new Error("The application shell has not been rendered");
+  }
+
+  const status = shellRoot.querySelector("#feed-status");
+  const statusMessage =
+    message === null || message === undefined
+      ? ""
+      : String(message);
+
+  status.textContent = statusMessage;
+  status.dataset.kind = kind;
+  status.hidden = statusMessage.length === 0;
 }
 
 function createHeader() {
@@ -144,6 +163,7 @@ function createMain() {
   heading.textContent = CATEGORY_LABELS[state.activeCategory];
 
   status.id = "feed-status";
+  status.hidden = true;
   status.setAttribute("aria-live", "polite");
   status.setAttribute("aria-atomic", "true");
 
@@ -222,6 +242,21 @@ function bindCategoryNavigation() {
 
     nextTab.focus();
     setActiveCategory(nextTab.dataset.category);
+  });
+}
+
+function bindDetailDialog() {
+  const dialog = shellRoot.querySelector("#post-detail");
+  const closeButton = shellRoot.querySelector("#close-detail");
+
+  const closeDialog = () => {
+    dialog.close();
+  };
+
+  closeButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDialog();
   });
 }
 
