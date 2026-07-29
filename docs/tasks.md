@@ -624,11 +624,11 @@ export function showStatus(message, kind);
 
 ## Tests First
 
-- [ ] Shell renders all required landmarks and tabs.
-- [ ] Stories begins selected.
-- [ ] Tab changes update state and accessibility attributes.
-- [ ] Returning to a loaded tab does not refetch its first page.
-- [ ] Escape and the close button close the detail dialog.
+- [x] Shell renders all required landmarks and tabs.
+- [x] Stories begins selected.
+- [x] Tab changes update state and accessibility attributes.
+- [x] Returning to a loaded tab does not refetch its first page.
+- [x] Escape and the close button close the detail dialog.
 
 ## Commit
 
