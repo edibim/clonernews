@@ -6,13 +6,30 @@ import {
   loadNextPage,
   mergeFeedItems,
 } from "../js/features/feed.js";
-import { renderFeedView } from "../js/ui/feedView.js";
+import {
+  createPostCard,
+  renderFeedItems,
+  renderFeedView,
+} from "../js/ui/feedView.js";
+import {
+  closePostDetail,
+  openPostDetail,
+  renderPostDetail,
+} from "../js/ui/detailView.js";
 import { renderShell } from "../js/ui/shell.js";
 import { resetState, state } from "../js/state.js";
 import { clearItemCache } from "../js/services/itemCache.js";
 import { clearPendingRequests } from "../js/services/requestDeduper.js";
 import { resetRequestQueue } from "../js/services/requestQueue.js";
-import { createMockFetch } from "./mockFetch.js";
+import {
+  createMockFetch,
+  createMockResponse,
+} from "./mockFetch.js";
+import {
+  jobFixture,
+  pollFixture,
+  storyFixture,
+} from "./fixtures.js";
 
 function createIds(start, count) {
   return Array.from(
@@ -34,6 +51,19 @@ function createItemResponses(ids, type = "story") {
   return ids.map((id) => ({
     body: createItem(id, type),
   }));
+}
+
+function createDeferred() {
+  let resolve;
+
+  const promise = new Promise((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return {
+    promise,
+    resolve,
+  };
 }
 
 function resetFeedTestState() {
@@ -322,6 +352,201 @@ test("an active feed request disables Load more", () => {
       "true",
     );
   } finally {
+    root.remove();
+  }
+});
+
+test("story, job, and poll cards show their required metadata", () => {
+  const storyCard = createPostCard(storyFixture);
+  const jobCard = createPostCard(jobFixture);
+  const pollCard = createPostCard(pollFixture);
+
+  assert(storyCard.textContent.includes("Test story"));
+  assert(storyCard.textContent.includes("alice"));
+  assert(storyCard.textContent.includes("120 points"));
+  assert(storyCard.textContent.includes("2 comments"));
+  assert(storyCard.textContent.includes("example.com"));
+  assert(storyCard.querySelector("time"));
+
+  const externalLink = storyCard.querySelector(
+    '[data-action="external"]',
+  );
+
+  assert(externalLink);
+  assertEqual(externalLink.target, "_blank");
+  assert(externalLink.rel.includes("noopener"));
+  assert(storyCard.querySelector('[data-action="open-detail"]'));
+
+  assert(jobCard.textContent.includes("Frontend Developer"));
+  assert(jobCard.textContent.includes("example-company"));
+  assert(jobCard.textContent.includes("Remote role"));
+  assert(jobCard.querySelector("time"));
+
+  assert(pollCard.textContent.includes("Which language"));
+  assert(pollCard.textContent.includes("bob"));
+  assert(pollCard.textContent.includes("42 points"));
+  assert(pollCard.textContent.includes("1 comment"));
+  assert(pollCard.textContent.includes("2 options"));
+});
+
+test("post cards tolerate missing optional fields", () => {
+  const card = createPostCard({
+    id: 70_001,
+    type: "story",
+  });
+
+  assert(card.textContent.includes("Untitled item"));
+  assert(card.textContent.includes("unknown user"));
+  assert(card.textContent.includes("0 comments"));
+});
+
+test("post cards sanitize unsafe titles and body text", () => {
+  const card = createPostCard({
+    id: 70_002,
+    type: "job",
+    title: '<img src=x onerror="alert(1)">Unsafe title',
+    text: '<p>Safe <strong>preview</strong></p><script>alert(1)</script>',
+  });
+
+  assertEqual(card.querySelector("img"), null);
+  assertEqual(card.querySelector("script"), null);
+  assert(card.textContent.includes("Unsafe title"));
+  assert(card.querySelector("strong"));
+});
+
+test("invalid external URLs are not rendered as links", () => {
+  const card = createPostCard({
+    id: 70_003,
+    type: "story",
+    title: "Unsafe link",
+    url: "javascript:alert(1)",
+  });
+
+  assertEqual(
+    card.querySelector('[data-action="external"]'),
+    null,
+  );
+  assert(card.querySelector('[data-action="open-detail"]'));
+});
+
+test("renderFeedItems replaces the list with semantic post cards", () => {
+  const container = document.createElement("ul");
+
+  renderFeedItems(container, [
+    storyFixture,
+    jobFixture,
+  ]);
+
+  assertEqual(container.children.length, 2);
+  assertEqual(container.children[0].tagName, "LI");
+  assert(container.querySelector('[data-post-id="1001"]'));
+  assert(container.querySelector('[data-post-id="1002"]'));
+});
+
+test("null and deleted detail items render a stable unavailable state", () => {
+  const nullDetail = renderPostDetail(null);
+  const deletedDetail = renderPostDetail({
+    id: 70_004,
+    type: "story",
+    deleted: true,
+  });
+
+  assert(nullDetail.classList.contains("detail-unavailable"));
+  assert(deletedDetail.classList.contains("detail-unavailable"));
+  assert(nullDetail.textContent.includes("unavailable"));
+  assert(deletedDetail.textContent.includes("unavailable"));
+});
+
+test("post detail sanitizes unsafe API content", () => {
+  const detail = renderPostDetail({
+    id: 70_005,
+    type: "job",
+    title: "<script>alert(1)</script>Safe title",
+    text: '<p onclick="alert(1)">Safe <em>body</em></p>',
+    url: "javascript:alert(1)",
+  });
+
+  assertEqual(detail.querySelector("script"), null);
+  assertEqual(detail.querySelector("[onclick]"), null);
+  assertEqual(
+    detail.querySelector('[data-action="external"]'),
+    null,
+  );
+  assert(detail.textContent.includes("Safe title"));
+  assert(detail.querySelector("em"));
+});
+
+test("stale detail responses cannot replace the selected post", async () => {
+  resetFeedTestState();
+
+  const originalFetch = globalThis.fetch;
+  const firstResponse = createDeferred();
+  const secondResponse = createDeferred();
+  const root = document.createElement("div");
+
+  document.body.append(root);
+  renderShell(root);
+
+  const dialog = root.querySelector("#post-detail");
+
+  dialog.showModal = () => {
+    dialog.setAttribute("open", "");
+  };
+  dialog.close = () => {
+    dialog.removeAttribute("open");
+  };
+
+  globalThis.fetch = (url) => {
+    if (url.includes("/item/70006.json")) {
+      return firstResponse.promise;
+    }
+
+    return secondResponse.promise;
+  };
+
+  try {
+    const firstOpen = openPostDetail(70_006);
+    const secondOpen = openPostDetail(70_007);
+
+    secondResponse.resolve(
+      createMockResponse({
+        body: {
+          id: 70_007,
+          type: "story",
+          title: "Current post",
+        },
+      }),
+    );
+    await secondOpen;
+
+    firstResponse.resolve(
+      createMockResponse({
+        body: {
+          id: 70_006,
+          type: "story",
+          title: "Stale post",
+        },
+      }),
+    );
+    await firstOpen;
+
+    assertEqual(state.selectedPostId, 70_007);
+    assert(
+      root
+        .querySelector("#detail-content")
+        .textContent.includes("Current post"),
+    );
+    assertEqual(
+      root
+        .querySelector("#detail-content")
+        .textContent.includes("Stale post"),
+      false,
+    );
+
+    closePostDetail();
+    assertEqual(state.selectedPostId, null);
+  } finally {
+    globalThis.fetch = originalFetch;
     root.remove();
   }
 });

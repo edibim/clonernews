@@ -70,6 +70,14 @@ export function renderFeedView(root, category) {
   setLoadMoreButton(loadMoreButton, "Load more", false);
 }
 
+export function renderFeedItems() {
+  throw new Error("renderFeedItems is not implemented");
+}
+
+export function createPostCard() {
+  throw new Error("createPostCard is not implemented");
+}
+
 function setStatus(element, message, kind) {
   element.textContent = message;
   element.dataset.kind = kind;
