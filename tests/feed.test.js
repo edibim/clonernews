@@ -457,6 +457,37 @@ test("null and deleted detail items render a stable unavailable state", () => {
   assert(deletedDetail.textContent.includes("unavailable"));
 });
 
+test("story, job, and poll details render type-specific content", () => {
+  const storyDetail = renderPostDetail(storyFixture);
+  const jobDetail = renderPostDetail(jobFixture);
+  const pollDetail = renderPostDetail(pollFixture);
+
+  assert(storyDetail.textContent.includes("Test story"));
+  assert(storyDetail.textContent.includes("120 points"));
+  assert(storyDetail.textContent.includes("2 comments"));
+  assert(storyDetail.querySelector('[data-action="external"]'));
+
+  assert(jobDetail.textContent.includes("Frontend Developer"));
+  assert(jobDetail.textContent.includes("Remote role"));
+  assert(jobDetail.querySelector("time"));
+
+  assert(pollDetail.textContent.includes("Which language"));
+  assert(pollDetail.textContent.includes("Choose one option"));
+  assert(pollDetail.textContent.includes("2 options"));
+});
+
+test("post detail tolerates missing optional fields", () => {
+  const detail = renderPostDetail({
+    id: 70_008,
+    type: "story",
+  });
+
+  assert(detail.textContent.includes("Untitled item"));
+  assert(detail.textContent.includes("unknown user"));
+  assert(detail.textContent.includes("0 comments"));
+  assert(detail.querySelector("time"));
+});
+
 test("post detail sanitizes unsafe API content", () => {
   const detail = renderPostDetail({
     id: 70_005,
