@@ -811,14 +811,14 @@ export function validatePollOption(option, pollId);
 
 ## Tests First
 
-- [ ] Discovery never inspects more than 60 recent IDs.
-- [ ] Discovery stops at six valid polls.
-- [ ] Fallback IDs are added without duplicates.
-- [ ] Invalid fallback data is ignored safely.
-- [ ] Poll results are newest-first.
-- [ ] Options are fetched from `parts` only.
-- [ ] An option with the wrong `poll` parent is rejected.
-- [ ] Options preserve `parts` order.
+- [x] Discovery never inspects more than 60 recent IDs.
+- [x] Discovery stops at six valid polls.
+- [x] Fallback IDs are added without duplicates.
+- [x] Invalid fallback data is ignored safely.
+- [x] Poll results are newest-first.
+- [x] Options are fetched from `parts` only.
+- [x] An option with the wrong `poll` parent is rejected.
+- [x] Options preserve `parts` order.
 
 ## Audit Note
 
