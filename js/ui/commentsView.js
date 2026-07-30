@@ -1,4 +1,7 @@
-import { getCommentState } from "../features/comments.js";
+import {
+  getCommentState,
+  toggleReplies,
+} from "../features/comments.js";
 import { setSanitizedHTML } from "../utils/html.js";
 import { formatRelativeTime } from "../utils/time.js";
 
@@ -17,6 +20,14 @@ export function renderCommentsView(container, rootPostId) {
 
   container.className = "comments";
   container.setAttribute("aria-label", "Comments");
+  container.dataset.rootPostId = String(rootPostId);
+
+  container.oncommentrerender = () => {
+    renderCommentsView(container, rootPostId);
+  };
+
+  container.removeEventListener("comment:rerender", container.oncommentrerender);
+  container.addEventListener("comment:rerender", container.oncommentrerender);
 
   if (!commentState) {
     container.replaceChildren(
@@ -52,7 +63,7 @@ export function renderCommentsView(container, rootPostId) {
 
   for (const comment of commentState.items) {
     const listItem = document.createElement("li");
-    const commentElement = createCommentElement(comment);
+    const commentElement = createCommentElement(comment, 0, rootPostId);
 
     if (commentElement) {
       listItem.append(commentElement);
@@ -70,12 +81,13 @@ export function renderCommentsView(container, rootPostId) {
  * @param {number} depth
  * @returns {HTMLElement|null}
  */
-export function createCommentElement(comment, depth = 0) {
+export function createCommentElement(comment, depth = 0, rootPostId = null) {
   if (!comment || typeof comment !== "object") {
     return null;
   }
 
   const article = document.createElement("article");
+  const replyState = getCommentState(comment.id);
 
   article.className = "comment";
   article.dataset.commentId = String(comment.id || "");
@@ -99,6 +111,54 @@ export function createCommentElement(comment, depth = 0) {
     body.className = "comment-body";
     setSanitizedHTML(body, comment.text);
     article.append(body);
+  }
+
+  if (Array.isArray(comment.kids) && comment.kids.length > 0) {
+    const toggle = document.createElement("button");
+    const replyCount = replyState?.items?.length ?? 0;
+
+    toggle.type = "button";
+    toggle.className = "comment-replies-toggle";
+    toggle.dataset.action = "toggle-replies";
+    toggle.textContent = replyState?.expanded
+      ? `Hide replies (${replyCount})`
+      : `Show replies (${replyCount})`;
+    toggle.addEventListener("click", async () => {
+      const nextState = await toggleReplies(comment.id, rootPostId ?? comment.id);
+      const root = article.closest(".comments");
+
+      if (root) {
+        const currentView = root.closest("[data-root-post-id]") ?? root;
+        currentView.dispatchEvent(
+          new CustomEvent("comment:rerender", { bubbles: true }),
+        );
+      }
+
+      if (nextState) {
+        toggle.textContent = nextState.expanded
+          ? `Hide replies (${nextState.items.length})`
+          : `Show replies (${nextState.items.length})`;
+      }
+    });
+    article.append(toggle);
+  }
+
+  if (replyState?.expanded && Array.isArray(replyState.items) && replyState.items.length > 0) {
+    const nestedList = document.createElement("ol");
+
+    nestedList.className = "comment-list comment-list-nested";
+
+    for (const reply of replyState.items) {
+      const replyItem = document.createElement("li");
+      const replyElement = createCommentElement(reply, depth + 1, rootPostId);
+
+      if (replyElement) {
+        replyItem.append(replyElement);
+        nestedList.append(replyItem);
+      }
+    }
+
+    article.append(nestedList);
   }
 
   return article;
