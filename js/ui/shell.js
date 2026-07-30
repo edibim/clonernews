@@ -1,5 +1,6 @@
 import { CATEGORIES } from "../config.js";
 import { state } from "../state.js";
+import { renderLiveView } from "./liveView.js";
 
 const CATEGORY_LABELS = Object.freeze({
   stories: "Stories",
@@ -43,6 +44,7 @@ export function renderShell(root, options = {}) {
 
   bindCategoryNavigation();
   bindDetailDialog();
+  renderLiveView(root.querySelector("#live-updates"));
   notifyCategorySelection();
   initializeActiveCategory();
 }
@@ -60,6 +62,7 @@ export function setActiveCategory(category) {
   state.activeCategory = category;
 
   renderActiveFeedState();
+  renderLiveView(shellRoot.querySelector("#live-updates"));
   notifyCategorySelection();
   initializeActiveCategory();
 }
