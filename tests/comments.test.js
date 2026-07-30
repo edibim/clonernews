@@ -4,6 +4,7 @@ import {
   getCommentState,
   initializeComments,
   loadMoreComments,
+  toggleReplies,
   validateCommentParent,
 } from "../js/features/comments.js";
 import {
@@ -306,6 +307,121 @@ test("stale comment results cannot attach beneath a newly selected post", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("collapsed comments do not fetch replies until expanded", async () => {
+  resetCommentTestState();
+
+  const post = {
+    ...storyFixture,
+    id: 3100,
+    kids: [3101],
+  };
+  const parentComment = {
+    ...directCommentFixture,
+    id: 3101,
+    kids: [4101],
+  };
+
+  await withMockFetch([{ body: parentComment }], async () => {
+    await initializeComments(post);
+
+    let replyState = await toggleReplies(parentComment.id, post.id);
+
+    assertEqual(replyState.expanded, true);
+    assertEqual(replyState.items.length, 0);
+
+    replyState = await toggleReplies(parentComment.id, post.id);
+    assertEqual(replyState.expanded, false);
+  });
+});
+
+test("expanding a comment requests only that comment's kids", async () => {
+  resetCommentTestState();
+
+  const post = {
+    ...storyFixture,
+    id: 3200,
+    kids: [3201],
+  };
+  const parentComment = {
+    ...directCommentFixture,
+    id: 3201,
+    kids: [4201, 4202],
+  };
+
+  await withMockFetch(
+    [{ body: parentComment }, { body: createComment(4201, parentComment.id) }],
+    async (mockFetch) => {
+      await initializeComments(post);
+      await toggleReplies(parentComment.id, post.id);
+      const replyState = await toggleReplies(parentComment.id, post.id);
+
+      assertEqual(mockFetch.calls.length, 2);
+      assertEqual(
+        mockFetch.calls[1].url,
+        "https://hacker-news.firebaseio.com/v0/item/4201.json",
+      );
+      assertEqual(replyState.expanded, true);
+      assertEqual(replyState.items[0].id, 4201);
+    },
+  );
+});
+
+test("wrong-parent replies are rejected", async () => {
+  resetCommentTestState();
+
+  const post = {
+    ...storyFixture,
+    id: 3300,
+    kids: [3301],
+  };
+  const parentComment = {
+    ...directCommentFixture,
+    id: 3301,
+    kids: [4301],
+  };
+  const wrongParentReply = {
+    ...createComment(4301, 9999),
+  };
+
+  await withMockFetch(
+    [{ body: parentComment }, { body: wrongParentReply }],
+    async () => {
+      await initializeComments(post);
+      await toggleReplies(parentComment.id, post.id);
+      const replyState = await toggleReplies(parentComment.id, post.id);
+
+      assertEqual(replyState.items.length, 0);
+    },
+  );
+});
+
+test("re-expanding a collapsed comment reuses cached replies", async () => {
+  resetCommentTestState();
+
+  const post = {
+    ...storyFixture,
+    id: 3400,
+    kids: [3401],
+  };
+  const parentComment = {
+    ...directCommentFixture,
+    id: 3401,
+    kids: [4401],
+  };
+
+  await withMockFetch(
+    [{ body: parentComment }, { body: createComment(4401, parentComment.id) }],
+    async (mockFetch) => {
+      await initializeComments(post);
+      await toggleReplies(parentComment.id, post.id);
+      await toggleReplies(parentComment.id, post.id);
+      await toggleReplies(parentComment.id, post.id);
+
+      assertEqual(mockFetch.calls.length, 2);
+    },
+  );
 });
 
 test("createCommentElement renders sanitized comment content", () => {
