@@ -172,4 +172,4 @@ The project includes tests covering:
 
 ## 📄 License
 
-Educational project developed as part of the **Zone01** curriculum.
+Educational project developed as part of the **Zone01**.

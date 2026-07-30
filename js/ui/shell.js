@@ -119,10 +119,13 @@ export function showStatus(message, kind = "info") {
 function createHeader() {
   const header = document.createElement("header");
   const heading = document.createElement("h1");
+  const tagline = document.createElement("p");
   const navigation = document.createElement("nav");
   const tabList = document.createElement("div");
 
   heading.textContent = "ClonerNews";
+  tagline.textContent = "Where Hackers Read.";
+  tagline.className = "header-tagline";
   navigation.setAttribute("aria-label", "Post categories");
   tabList.setAttribute("role", "tablist");
   tabList.setAttribute("aria-label", "News feeds");
@@ -132,7 +135,7 @@ function createHeader() {
   }
 
   navigation.append(tabList);
-  header.append(heading, navigation);
+  header.append(heading, tagline, navigation);
 
   return header;
 }
