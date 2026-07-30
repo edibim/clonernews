@@ -210,6 +210,7 @@ function setStatus(element, message, kind) {
 function setLoadMoreButton(element, label, disabled) {
   element.textContent = label;
   element.disabled = disabled;
+  element.setAttribute("aria-controls", "feed-list");
 }
 
 function createMetadataText(field, value) {

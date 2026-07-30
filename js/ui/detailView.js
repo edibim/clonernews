@@ -444,6 +444,14 @@ function openDialog(dialog) {
   if (!dialog.open) {
     dialog.showModal();
   }
+
+  dialog.setAttribute("aria-modal", "true");
+
+  const focusTarget = dialog.querySelector("#close-detail");
+
+  if (focusTarget instanceof HTMLElement) {
+    focusTarget.focus();
+  }
 }
 
 function isCurrentDetailRequest(itemId, requestVersion) {
@@ -459,6 +467,7 @@ function createDetailStatus(message, kind) {
   status.className = "detail-status";
   status.dataset.kind = kind;
   status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
   status.textContent = message;
 
   return status;
@@ -494,6 +503,7 @@ function appendCommentControls(section, rootPostId) {
 
   button.type = "button";
   button.dataset.action = "load-more-comments";
+  button.setAttribute("aria-controls", `comment-list-${rootPostId}`);
   button.textContent = commentState.error
     ? "Retry comments"
     : "Load more comments";

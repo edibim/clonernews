@@ -116,10 +116,13 @@ export function createCommentElement(comment, depth = 0, rootPostId = null) {
   if (Array.isArray(comment.kids) && comment.kids.length > 0) {
     const toggle = document.createElement("button");
     const replyCount = replyState?.items?.length ?? 0;
+    const replyListId = `comment-replies-${comment.id}`;
 
     toggle.type = "button";
     toggle.className = "comment-replies-toggle";
     toggle.dataset.action = "toggle-replies";
+    toggle.setAttribute("aria-expanded", String(Boolean(replyState?.expanded)));
+    toggle.setAttribute("aria-controls", replyListId);
     toggle.textContent = replyState?.expanded
       ? `Hide replies (${replyCount})`
       : `Show replies (${replyCount})`;
@@ -135,6 +138,7 @@ export function createCommentElement(comment, depth = 0, rootPostId = null) {
       }
 
       if (nextState) {
+        toggle.setAttribute("aria-expanded", String(nextState.expanded));
         toggle.textContent = nextState.expanded
           ? `Hide replies (${nextState.items.length})`
           : `Show replies (${nextState.items.length})`;
@@ -147,6 +151,7 @@ export function createCommentElement(comment, depth = 0, rootPostId = null) {
     const nestedList = document.createElement("ol");
 
     nestedList.className = "comment-list comment-list-nested";
+    nestedList.id = `comment-replies-${comment.id}`;
 
     for (const reply of replyState.items) {
       const replyItem = document.createElement("li");

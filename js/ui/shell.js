@@ -42,6 +42,8 @@ export function renderShell(root, options = {}) {
     createDetailDialog(),
   );
 
+  root.setAttribute("aria-label", "ClonerNews application");
+
   bindCategoryNavigation();
   bindDetailDialog();
   renderLiveView(root.querySelector("#live-updates"));
@@ -176,18 +178,21 @@ function createMain() {
   heading.textContent = CATEGORY_LABELS[state.activeCategory];
 
   status.id = "feed-status";
-  status.hidden = true;
   status.setAttribute("aria-live", "polite");
   status.setAttribute("aria-atomic", "true");
+  status.hidden = true;
 
   feedList.id = "feed-list";
+  feedList.setAttribute("aria-label", "Post list");
 
   loadMore.id = "load-more";
   loadMore.type = "button";
   loadMore.textContent = "Load more";
+  loadMore.setAttribute("aria-controls", "feed-list");
 
   sentinel.id = "feed-sentinel";
   sentinel.setAttribute("aria-hidden", "true");
+  sentinel.setAttribute("data-testid", "feed-sentinel");
 
   feed.append(heading, status, feedList, loadMore, sentinel);
   main.append(liveUpdates, feed);
