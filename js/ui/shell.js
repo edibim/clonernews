@@ -123,7 +123,7 @@ function createHeader() {
   const navigation = document.createElement("nav");
   const tabList = document.createElement("div");
 
-  heading.textContent = "ClonerNews";
+  heading.innerHTML = '<span class="brand-mark">&lt;/&gt;</span> ClonerNews';
   tagline.textContent = "Where Hackers Read.";
   tagline.className = "header-tagline";
   navigation.setAttribute("aria-label", "Post categories");
@@ -208,6 +208,7 @@ function createDetailDialog() {
   const heading = document.createElement("h2");
   const closeButton = document.createElement("button");
   const content = document.createElement("div");
+  const dialogHeader = document.createElement("div");
 
   dialog.id = "post-detail";
   dialog.setAttribute("aria-labelledby", "detail-heading");
@@ -222,8 +223,11 @@ function createDetailDialog() {
   closeButton.setAttribute("aria-label", "Close post details");
 
   content.id = "detail-content";
-
-  dialog.append(heading, closeButton, content);
+  
+  dialogHeader.className = "dialog-header";
+  dialogHeader.append(heading, closeButton);
+  
+  dialog.append(dialogHeader, content);
 
   return dialog;
 }
