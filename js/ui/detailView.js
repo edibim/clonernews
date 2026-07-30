@@ -11,7 +11,15 @@ import {
 import { state } from "../state.js";
 import { renderCommentsView } from "./commentsView.js";
 import { setSanitizedHTML } from "../utils/html.js";
-import { formatRelativeTime } from "../utils/time.js";
+import {
+  appendMetadata,
+  createExternalLink,
+  createMetadataText,
+  createTimeElement,
+  formatCount,
+  getPlainText,
+  getSafeExternalUrl,
+} from "./postContentHelpers.js";
 
 const SUPPORTED_POST_TYPES = new Set([
   "story",
@@ -330,101 +338,6 @@ function createUnavailableDetail() {
   return unavailable;
 }
 
-function createMetadataText(field, value) {
-  const element = document.createElement("span");
-
-  element.dataset.field = field;
-  element.textContent = value;
-
-  return element;
-}
-
-function createTimeElement(unixSeconds) {
-  const element = document.createElement("time");
-  const nowSeconds = Math.floor(Date.now() / 1000);
-
-  element.dataset.field = "time";
-  element.textContent = formatRelativeTime(
-    unixSeconds,
-    nowSeconds,
-  );
-
-  if (Number.isFinite(unixSeconds)) {
-    element.dateTime = new Date(
-      unixSeconds * 1000,
-    ).toISOString();
-  }
-
-  return element;
-}
-
-function appendMetadata(container, element) {
-  if (container.childNodes.length > 0) {
-    container.append(document.createTextNode(" · "));
-  }
-
-  container.append(element);
-}
-
-function createExternalLink(url, title) {
-  const link = document.createElement("a");
-
-  link.href = url.href;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.dataset.action = "external";
-  link.textContent = `Visit ${url.hostname}`;
-  link.setAttribute(
-    "aria-label",
-    `Open ${title} on ${url.hostname} in a new tab`,
-  );
-
-  return link;
-}
-
-function getSafeExternalUrl(value) {
-  if (typeof value !== "string" || value.length === 0) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return null;
-    }
-
-    return url;
-  } catch {
-    return null;
-  }
-}
-
-function getPlainText(value, fallback) {
-  if (value === null || value === undefined) {
-    return fallback;
-  }
-
-  const holder = document.createElement("div");
-
-  setSanitizedHTML(holder, String(value));
-
-  const plainText = holder.textContent.trim();
-
-  return plainText || fallback;
-}
-
-function formatCount(value, singularLabel) {
-  const normalizedValue = Number.isFinite(value)
-    ? Math.max(0, value)
-    : 0;
-  const label =
-    normalizedValue === 1
-      ? singularLabel
-      : `${singularLabel}s`;
-
-  return `${normalizedValue} ${label}`;
-}
 
 function getDetailElements() {
   const dialog = document.querySelector("#post-detail");
