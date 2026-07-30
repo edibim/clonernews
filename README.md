@@ -227,7 +227,7 @@ The application itself is a static frontend and does not require a backend serve
 Clone the repository.
 
 ```bash
-git clone <repository-url>
+git clone https://platform.zone01.gr/git/ltzokas/clonernews
 ```
 
 Enter the project.
@@ -271,3 +271,446 @@ js/app.js
 ```
 
 which initializes the application and coordinates the remaining modules.
+
+---
+
+# Project Structure
+
+The project follows a layered architecture where every directory has a single responsibility.
+
+```
+clonernews/
+│
+├── css/
+│
+├── docs/
+│
+├── js/
+│   ├── api/
+│   ├── features/
+│   ├── services/
+│   ├── ui/
+│   ├── utils/
+│   ├── app.js
+│   ├── config.js
+│   └── state.js
+│
+├── tests/
+│
+├── index.html
+├── tests.html
+└── package.json
+```
+
+The separation between folders intentionally avoids mixing responsibilities and keeps the application maintainable as new features are added.
+
+---
+
+# Folder Responsibilities
+
+## css/
+
+Contains all application styling.
+
+Responsibilities include:
+
+- Layout
+- Responsive design
+- Typography
+- Components
+- Utility classes
+- Visual states
+
+The styling layer is completely independent from the application logic.
+
+---
+
+## docs/
+
+Contains project documentation used during development.
+
+Examples may include:
+
+- development notes
+- engineering decisions
+- implementation phases
+
+Documentation is intentionally separated from source code.
+
+---
+
+## js/
+
+The `js` directory contains the entire application logic.
+
+Instead of placing every file together, the project separates code into multiple layers.
+
+---
+
+# api/
+
+The API layer is responsible for communication with the Hacker News Firebase API.
+
+Responsibilities include:
+
+- building requests
+- calling endpoints
+- fetching items
+- fetching users
+- retrieving stories
+- retrieving jobs
+- retrieving polls
+
+The API layer never manipulates the user interface.
+
+Its only responsibility is data retrieval.
+
+---
+
+# services/
+
+The service layer provides reusable infrastructure shared by multiple features.
+
+Current services include components such as:
+
+- request queue
+- request deduplication
+- item cache
+
+These services are intentionally generic and reusable.
+
+They do not know anything about stories, comments or polls.
+
+Their only responsibility is improving data access.
+
+---
+
+## Request Queue
+
+Instead of sending unlimited simultaneous requests, requests are coordinated through a queue.
+
+Benefits:
+
+- avoids API flooding
+- smoother loading
+- predictable concurrency
+- better browser performance
+
+---
+
+## Request Deduplication
+
+If several parts of the application request the same resource simultaneously, only one network request is executed.
+
+The remaining consumers reuse the same Promise.
+
+Benefits:
+
+- reduced bandwidth
+- fewer duplicate requests
+- improved responsiveness
+
+---
+
+## Item Cache
+
+Previously downloaded resources remain cached.
+
+Benefits:
+
+- faster navigation
+- fewer network requests
+- reduced latency
+- improved user experience
+
+---
+
+# features/
+
+Feature modules contain application business logic.
+
+Each feature owns its workflow.
+
+Examples include:
+
+- feed loading
+- comments
+- polls
+- live updates
+
+Features coordinate:
+
+- services
+- api
+- ui
+
+without directly mixing responsibilities.
+
+---
+
+## Feed Feature
+
+Responsible for:
+
+- loading stories
+- pagination
+- incremental loading
+- automatic loading
+- feed state
+
+---
+
+## Comments Feature
+
+Responsible for:
+
+- loading comments
+- recursive replies
+- lazy loading
+- reply expansion
+- comment hierarchy
+
+---
+
+## Poll Feature
+
+Responsible for:
+
+- poll data
+- poll options
+- vote information
+
+---
+
+## Live Updates Feature
+
+Responsible for:
+
+- checking for new stories
+- update notifications
+- merging new content into the feed
+
+---
+
+# ui/
+
+The UI layer contains rendering logic.
+
+Its responsibility is presenting already processed data.
+
+Examples include:
+
+- feed rendering
+- story rendering
+- comments rendering
+- dialog rendering
+- live update banner
+- reusable UI helpers
+
+The UI never communicates directly with the Hacker News API.
+
+---
+
+# utils/
+
+Utility modules contain small reusable helper functions.
+
+Examples include:
+
+- time formatting
+- HTML sanitization
+- throttling
+- helper functions
+
+Utilities contain no application state.
+
+They remain reusable throughout the project.
+
+---
+
+# app.js
+
+Application entry point.
+
+Responsibilities include:
+
+- application startup
+- initialization
+- feature coordination
+- startup sequence
+
+Every major module originates from this file.
+
+---
+
+# config.js
+
+Centralizes application configuration.
+
+Examples include:
+
+- API configuration
+- pagination values
+- timing constants
+- application limits
+
+Keeping configuration centralized avoids duplicated constants throughout the codebase.
+
+---
+
+# state.js
+
+Contains shared application state.
+
+Instead of spreading state across unrelated modules, common information is managed centrally where appropriate.
+
+---
+
+# Architecture
+
+The project follows a layered architecture.
+
+```
+                 Browser
+
+                    │
+
+                    ▼
+
+                index.html
+
+                    │
+
+                    ▼
+
+                 app.js
+
+                    │
+
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+
+    Features      State      Configuration
+
+        │
+
+        ▼
+
+     Services
+
+        │
+
+        ▼
+
+        API
+
+        │
+
+        ▼
+
+ Hacker News Firebase API
+```
+
+Each layer depends only on the layer below it.
+
+Responsibilities remain isolated.
+
+---
+
+# Why This Architecture?
+
+The architecture was chosen to achieve:
+
+- maintainability
+- readability
+- modularity
+- scalability
+- easier debugging
+- feature isolation
+- reusable infrastructure
+
+As the application grows, new functionality can usually be added inside an existing layer without affecting unrelated modules.
+
+---
+
+# Application Lifecycle
+
+```
+Browser
+
+↓
+
+Load index.html
+
+↓
+
+Load app.js
+
+↓
+
+Initialize configuration
+
+↓
+
+Initialize shared state
+
+↓
+
+Load initial feed
+
+↓
+
+Render UI
+
+↓
+
+Wait for user interaction
+
+↓
+
+Load additional data on demand
+
+↓
+
+Continue updating application state
+```
+
+The startup sequence keeps initialization predictable and minimizes unnecessary work before the first render.
+
+---
+
+# Feed Loading Lifecycle
+
+```
+Application starts
+
+↓
+
+Request top stories
+
+↓
+
+Receive story IDs
+
+↓
+
+Request story data
+
+↓
+
+Cache items
+
+↓
+
+Render first page
+
+↓
+
+Wait for user interaction
+
+↓
+
+Load additional items when requested
+```
+
+Feed rendering is incremental, allowing users to begin interacting with the application without waiting for every available story to load.
