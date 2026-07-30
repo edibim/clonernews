@@ -327,27 +327,28 @@ a:focus-visible {
 }
 
 dialog {
-  width: min(90%, 58rem);
+  width: min(900px, 92vw);
+
   max-height: 90vh;
 
-  overflow-y: auto;
+  padding: 1.75rem;
+
+  overflow: auto;
+
+  background: var(--background);
 
   border: 1px solid var(--border);
 
   border-radius: 1rem;
 
-  padding: 1.5rem;
-
-  background: var(--background);
-
   color: var(--text);
 
-  box-shadow: 0 30px 80px rgba(0,0,0,.45);
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
 }
 
 dialog::backdrop {
-  background: rgba(5, 8, 12, 0.78);
-  backdrop-filter: blur(4px);
+  background: rgba(5,8,12,.82);
+  backdrop-filter: blur(5px);
 }
 
 .primary-button,
@@ -418,9 +419,11 @@ dialog::backdrop {
 .dialog-header h2 {
   margin: 0;
 
-  color: var(--text);
+  font-size: 1.55rem;
 
-  font-size: 1.5rem;
+  font-weight: 700;
+
+  color: var(--text);
 }
 
 a {
