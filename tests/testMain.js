@@ -11,6 +11,7 @@ import "./shell.test.js";
 import "./feed.test.js";
 import "./polls.test.js";
 import "./comments.test.js";
+import "./liveUpdates.test.js";
 
 import { runTests } from "./runner.js";
 
