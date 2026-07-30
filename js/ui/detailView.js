@@ -1,9 +1,15 @@
 import { fetchItem } from "../api/client.js";
 import {
+  getCommentState,
+  initializeComments,
+  loadMoreComments,
+} from "../features/comments.js";
+import {
   loadPollOptions,
   validatePollOption,
 } from "../features/polls.js";
 import { state } from "../state.js";
+import { renderCommentsView } from "./commentsView.js";
 import { setSanitizedHTML } from "../utils/html.js";
 import { formatRelativeTime } from "../utils/time.js";
 
@@ -85,7 +91,26 @@ export async function openPostDetail(itemId) {
     }
 
     content.removeAttribute("aria-busy");
+
+    if (!isAvailablePost(item)) {
+      content.replaceChildren(detail);
+      return item;
+    }
+
+    const commentsRequest = initializeComments(item, { signal });
+    const commentsSection = createCommentsSection(item.id);
+
+    detail.append(commentsSection);
+    renderPostComments(commentsSection, item.id);
     content.replaceChildren(detail);
+
+    await commentsRequest;
+
+    if (!isCurrentDetailRequest(itemId, requestVersion)) {
+      return null;
+    }
+
+    renderPostComments(commentsSection, item.id);
 
     return item;
   } catch (error) {
@@ -437,4 +462,48 @@ function createDetailStatus(message, kind) {
   status.textContent = message;
 
   return status;
+}
+
+function createCommentsSection(rootPostId) {
+  const section = document.createElement("section");
+
+  section.className = "comments";
+  section.dataset.rootPostId = String(rootPostId);
+  section.setAttribute("aria-label", "Comments");
+
+  return section;
+}
+
+function renderPostComments(section, rootPostId) {
+  renderCommentsView(section, rootPostId);
+  appendCommentControls(section, rootPostId);
+}
+
+function appendCommentControls(section, rootPostId) {
+  const commentState = getCommentState(rootPostId);
+
+  if (
+    !commentState ||
+    commentState.loading ||
+    commentState.exhausted
+  ) {
+    return;
+  }
+
+  const button = document.createElement("button");
+
+  button.type = "button";
+  button.dataset.action = "load-more-comments";
+  button.textContent = commentState.error
+    ? "Retry comments"
+    : "Load more comments";
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Loading comments...";
+
+    await loadMoreComments(rootPostId, rootPostId);
+    renderPostComments(section, rootPostId);
+  });
+
+  section.append(button);
 }

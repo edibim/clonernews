@@ -380,3 +380,112 @@ test("createCommentsStatus renders comment status text and kind", () => {
   assertEqual(status.dataset.kind, "loading");
   assertEqual(status.textContent, "Loading comments...");
 });
+
+test("opening a post detail renders its direct comments", async () => {
+  resetCommentTestState();
+
+  const root = document.createElement("div");
+
+  document.body.append(root);
+  renderShell(root);
+
+  const dialog = root.querySelector("#post-detail");
+
+  dialog.showModal = () => {
+    dialog.setAttribute("open", "");
+  };
+  dialog.close = () => {
+    dialog.removeAttribute("open");
+  };
+
+  await withMockFetch(
+    [
+      { body: storyFixture },
+      { body: directCommentFixture },
+      { body: secondDirectCommentFixture },
+    ],
+    async () => {
+      await openPostDetail(storyFixture.id);
+    },
+  );
+
+  try {
+    const detailContent = root.querySelector("#detail-content");
+
+    assertEqual(
+      detailContent.textContent.includes("This is a direct comment."),
+      true,
+    );
+    assertEqual(
+      detailContent.textContent.includes("This is another direct comment."),
+      true,
+    );
+  } finally {
+    closePostDetail();
+    root.remove();
+  }
+});
+
+test("Load more comments appends the next direct-comment batch", async () => {
+  resetCommentTestState();
+
+  const commentIds = Array.from(
+    { length: 21 },
+    (_, index) => 10_001 + index,
+  );
+  const post = {
+    ...storyFixture,
+    id: 10_000,
+    kids: commentIds,
+  };
+  const root = document.createElement("div");
+
+  document.body.append(root);
+  renderShell(root);
+
+  const dialog = root.querySelector("#post-detail");
+
+  dialog.showModal = () => {
+    dialog.setAttribute("open", "");
+  };
+  dialog.close = () => {
+    dialog.removeAttribute("open");
+  };
+
+  await withMockFetch(
+    [
+      { body: post },
+      ...commentIds.slice(0, 20).map((id) => ({
+        body: createComment(id, post.id),
+      })),
+      {
+        body: createComment(commentIds[20], post.id),
+      },
+    ],
+    async () => {
+      await openPostDetail(post.id);
+
+      root
+        .querySelector('[data-action="load-more-comments"]')
+        .click();
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    },
+  );
+
+  try {
+    assertEqual(
+      root.querySelectorAll("#detail-content .comment").length,
+      21,
+    );
+    assertEqual(
+      root.querySelector('[data-action="load-more-comments"]'),
+      null,
+    );
+  } finally {
+    closePostDetail();
+    root.remove();
+  }
+});
