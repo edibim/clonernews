@@ -1,5 +1,6 @@
 import { assert, assertEqual, test } from "./runner.js";
 
+import { bindAutoFeedLoader } from "../js/app.js";
 import {
   initializeFeed,
   isVisibleTopLevelItem,
@@ -73,6 +74,36 @@ function resetFeedTestState() {
   resetRequestQueue();
 }
 
+function createObserverHarness() {
+  const callbacks = [];
+
+  class FakeIntersectionObserver {
+    constructor(callback) {
+      callbacks.push(callback);
+      this.observedTargets = [];
+    }
+
+    observe(target) {
+      this.observedTargets.push(target);
+    }
+
+    disconnect() {
+      this.observedTargets = [];
+    }
+  }
+
+  Object.assign(globalThis, { IntersectionObserver: FakeIntersectionObserver });
+
+  return {
+    callbacks,
+    trigger(target) {
+      for (const callback of callbacks) {
+        callback([{ isIntersecting: true, target }]);
+      }
+    },
+  };
+}
+
 async function withMockFetch(responses, callback) {
   const originalFetch = globalThis.fetch;
   const mockFetch = createMockFetch(responses);
@@ -85,6 +116,79 @@ async function withMockFetch(responses, callback) {
     globalThis.fetch = originalFetch;
   }
 }
+
+test("rapid observer triggers share a single automatic load", async () => {
+  resetFeedTestState();
+
+  const root = document.createElement("div");
+  document.body.append(root);
+
+  try {
+    renderShell(root);
+
+    const observerHarness = createObserverHarness();
+    let loadCount = 0;
+
+    bindAutoFeedLoader(root, async () => {
+      loadCount += 1;
+    });
+
+    observerHarness.trigger(root.querySelector("#feed-sentinel"));
+    observerHarness.trigger(root.querySelector("#feed-sentinel"));
+
+    assertEqual(loadCount, 1);
+  } finally {
+    root.remove();
+  }
+});
+
+test("observer stays idle while the active feed is already loading", async () => {
+  resetFeedTestState();
+
+  const root = document.createElement("div");
+  document.body.append(root);
+
+  try {
+    renderShell(root);
+
+    const observerHarness = createObserverHarness();
+    let loadCount = 0;
+
+    state.feeds.stories.loading = true;
+
+    bindAutoFeedLoader(root, async () => {
+      loadCount += 1;
+    });
+
+    observerHarness.trigger(root.querySelector("#feed-sentinel"));
+
+    assertEqual(loadCount, 0);
+  } finally {
+    root.remove();
+  }
+});
+
+test("bindAutoFeedLoader falls back gracefully without IntersectionObserver", () => {
+  resetFeedTestState();
+
+  const root = document.createElement("div");
+  document.body.append(root);
+
+  try {
+    renderShell(root);
+
+    const originalObserver = globalThis.IntersectionObserver;
+
+    delete globalThis.IntersectionObserver;
+
+    const observer = bindAutoFeedLoader(root, () => {});
+
+    assertEqual(observer, null);
+  } finally {
+    globalThis.IntersectionObserver = originalObserver;
+    root.remove();
+  }
+});
 
 test("initial feed load requests one list and one 15-ID batch", async () => {
   resetFeedTestState();

@@ -3,7 +3,10 @@ import {
   loadNextPage,
 } from "./features/feed.js";
 import { discoverPolls } from "./features/polls.js";
-import { initializeLiveSnapshot, startLiveUpdates } from "./features/liveUpdates.js";
+import {
+  initializeLiveSnapshot,
+  startLiveUpdates,
+} from "./features/liveUpdates.js";
 import { state } from "./state.js";
 import {
   closePostDetail,
@@ -11,6 +14,7 @@ import {
 } from "./ui/detailView.js";
 import { renderFeedView } from "./ui/feedView.js";
 import { renderShell } from "./ui/shell.js";
+import { throttle } from "./utils/throttle.js";
 
 function initializeApp() {
   const app = document.querySelector("#app");
@@ -48,15 +52,7 @@ function initializeApp() {
         return;
       }
 
-      if (!isProgressiveCategory(category)) {
-        return;
-      }
-
-      const operation = state.feeds[category].initialized
-        ? loadNextPage
-        : initializeFeed;
-
-      void runFeedOperation(app, category, operation);
+      void runProgressiveFeedLoad(app, category);
     });
 
   app
@@ -85,11 +81,62 @@ function initializeApp() {
     .querySelector("#post-detail")
     .addEventListener("close", closePostDetail);
 
+  bindAutoFeedLoader(app, () => {
+    void runProgressiveFeedLoad(app, state.activeCategory);
+  });
+
   void initializeLiveSnapshot();
   startLiveUpdates();
 }
 
 document.addEventListener("DOMContentLoaded", initializeApp);
+
+export function bindAutoFeedLoader(root, loadHandler) {
+  if (!(root instanceof HTMLElement)) {
+    throw new TypeError("A valid application root is required");
+  }
+
+  if (typeof IntersectionObserver !== "function") {
+    return null;
+  }
+
+  const sentinel = root.querySelector("#feed-sentinel");
+
+  if (!sentinel) {
+    return null;
+  }
+
+  const throttledLoad = throttle(() => {
+    const category = state.activeCategory;
+    const feed = state.feeds[category];
+
+    if (
+      document.visibilityState === "hidden" ||
+      !feed ||
+      feed.loading ||
+      feed.exhausted ||
+      Boolean(feed.error)
+    ) {
+      return;
+    }
+
+    void loadHandler();
+  }, 150);
+
+  const observer = new IntersectionObserver((entries) => {
+    if (
+      document.visibilityState === "hidden" ||
+      !entries.some((entry) => entry.isIntersecting)
+    ) {
+      return;
+    }
+
+    throttledLoad();
+  });
+
+  observer.observe(sentinel);
+  return observer;
+}
 
 async function runFeedOperation(root, category, operation) {
   const request = operation(category);
@@ -101,6 +148,22 @@ async function runFeedOperation(root, category, operation) {
   if (state.activeCategory === category) {
     renderFeedView(root, category);
   }
+}
+
+async function runProgressiveFeedLoad(root, category) {
+  if (category === "polls") {
+    return;
+  }
+
+  if (!isProgressiveCategory(category)) {
+    return;
+  }
+
+  const operation = state.feeds[category].initialized
+    ? loadNextPage
+    : initializeFeed;
+
+  await runFeedOperation(root, category, operation);
 }
 
 function isProgressiveCategory(category) {
