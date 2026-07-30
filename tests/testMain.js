@@ -10,6 +10,7 @@ import "./html.test.js";
 import "./shell.test.js";
 import "./feed.test.js";
 import "./polls.test.js";
+import "./comments.test.js";
 
 import { runTests } from "./runner.js";
 
