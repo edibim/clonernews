@@ -118,7 +118,7 @@ export function createCommentElement(comment, depth = 0, rootPostId = null) {
 
   if (Array.isArray(comment.kids) && comment.kids.length > 0) {
     const toggle = document.createElement("button");
-    const replyCount = replyState?.items?.length ?? 0;
+    const replyCount = comment.kids.length;
     const replyListId = `comment-replies-${comment.id}`;
 
     toggle.type = "button";
@@ -143,8 +143,8 @@ export function createCommentElement(comment, depth = 0, rootPostId = null) {
       if (nextState) {
         toggle.setAttribute("aria-expanded", String(nextState.expanded));
         toggle.textContent = nextState.expanded
-          ? `Hide replies (${nextState.items.length})`
-          : `Show replies (${nextState.items.length})`;
+         ? `Hide replies (${replyCount})`
+         : `Show replies (${replyCount})`;
       }
     });
     article.append(toggle);
