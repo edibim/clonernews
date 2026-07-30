@@ -154,22 +154,6 @@ The project includes tests covering:
 
 ---
 
-## 📸 Screenshots
-
-### Home Feed
-
-> *(Add screenshot here)*
-
-### Story Details
-
-> *(Add screenshot here)*
-
-### Nested Comments
-
-> *(Add screenshot here)*
-
----
-
 ## 📄 License
 
 Educational project developed as part of the **Zone01**.
