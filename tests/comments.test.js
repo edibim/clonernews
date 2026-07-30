@@ -6,6 +6,11 @@ import {
   loadMoreComments,
   validateCommentParent,
 } from "../js/features/comments.js";
+import {
+  createCommentElement,
+  createCommentsStatus,
+  renderCommentsView,
+} from "../js/ui/commentsView.js";
 import { resetState, state } from "../js/state.js";
 import { clearItemCache } from "../js/services/itemCache.js";
 import { clearPendingRequests } from "../js/services/requestDeduper.js";
@@ -301,4 +306,77 @@ test("stale comment results cannot attach beneath a newly selected post", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("createCommentElement renders sanitized comment content", () => {
+  const comment = {
+    ...directCommentFixture,
+    text: '<p onclick="alert(1)">Safe <strong>comment</strong></p>',
+  };
+  const element = createCommentElement(comment);
+
+  assertEqual(element.tagName, "ARTICLE");
+  assertEqual(element.querySelector("[onclick]"), null);
+  assertEqual(element.textContent.includes("charlie"), true);
+  assertEqual(element.textContent.includes("Safe comment"), true);
+  assertEqual(Boolean(element.querySelector("strong")), true);
+});
+
+test("createCommentElement renders deleted placeholders", () => {
+  const element = createCommentElement(deletedItemFixture);
+
+  assertEqual(element.textContent.includes("[deleted]"), true);
+  assertEqual(element.textContent.includes("unknown user"), false);
+});
+
+test("renderCommentsView shows loading, empty, error, and comments", () => {
+  resetCommentTestState();
+
+  const container = document.createElement("section");
+
+  renderCommentsView(container, storyFixture.id);
+  assertEqual(container.textContent.includes("No comments yet."), true);
+
+  state.commentsByParent.set(storyFixture.id, {
+    parentId: storyFixture.id,
+    rootPostId: storyFixture.id,
+    ids: [directCommentFixture.id],
+    items: [],
+    cursor: 0,
+    loading: true,
+    exhausted: false,
+    error: null,
+    expanded: true,
+  });
+  renderCommentsView(container, storyFixture.id);
+  assertEqual(container.textContent.includes("Loading comments..."), true);
+
+  state.commentsByParent.get(storyFixture.id).loading = false;
+  state.commentsByParent.get(storyFixture.id).error =
+    "Unable to load comments. Try again.";
+  renderCommentsView(container, storyFixture.id);
+  assertEqual(container.textContent.includes("Try again"), true);
+
+  state.commentsByParent.set(storyFixture.id, {
+    parentId: storyFixture.id,
+    rootPostId: storyFixture.id,
+    ids: [directCommentFixture.id],
+    items: [directCommentFixture],
+    cursor: 1,
+    loading: false,
+    exhausted: true,
+    error: null,
+    expanded: true,
+  });
+  renderCommentsView(container, storyFixture.id);
+  assertEqual(container.querySelectorAll("article").length, 1);
+  assertEqual(container.textContent.includes("This is a direct comment."), true);
+});
+
+test("createCommentsStatus renders comment status text and kind", () => {
+  const status = createCommentsStatus("Loading comments...", "loading");
+
+  assertEqual(status.tagName, "P");
+  assertEqual(status.dataset.kind, "loading");
+  assertEqual(status.textContent, "Loading comments...");
 });
