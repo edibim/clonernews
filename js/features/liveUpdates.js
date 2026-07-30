@@ -7,7 +7,7 @@ import {
   LIVE_INTERVAL_MS,
   LIVE_NEW_ITEM_FETCH_CAP,
 } from "../config.js";
-import { state } from "../state.js";
+import { getKnownItemIds, state } from "../state.js";
 import { sortNewestFirst } from "../utils/time.js";
 import { renderLiveView } from "../ui/liveView.js";
 
@@ -101,16 +101,7 @@ export async function checkLiveUpdates({ signal } = {}) {
       ? updates.items.filter((id) => Number.isSafeInteger(id) && id > 0)
       : [];
 
-    const knownIds = new Set();
-
-    for (const feed of Object.values(state.feeds)) {
-      for (const item of feed.items) {
-        if (Number.isSafeInteger(item?.id)) {
-          knownIds.add(item.id);
-        }
-      }
-    }
-
+    const knownIds = getKnownItemIds();
     const relevantChangedIds = changedIds.filter((id) => knownIds.has(id));
 
     if (relevantChangedIds.length > 0) {
@@ -154,11 +145,7 @@ export async function checkLiveUpdates({ signal } = {}) {
     state.live.checking = false;
   }
 
-  const liveContainer = document.querySelector("#live-updates");
-
-  if (liveContainer) {
-    renderLiveView(liveContainer);
-  }
+  renderLiveBanner();
 
   return state.live;
 }
@@ -213,13 +200,17 @@ export async function acceptLiveUpdates(category, { signal } = {}) {
   state.live.newestObservedMaxItem = latestMaxItem;
   state.live.error = null;
 
+  renderLiveBanner();
+
+  return state.live;
+}
+
+function renderLiveBanner() {
   const liveContainer = document.querySelector("#live-updates");
 
   if (liveContainer) {
     renderLiveView(liveContainer);
   }
-
-  return state.live;
 }
 
 function isRenderableLiveItem(item, category) {
