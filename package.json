@@ -1,0 +1,11 @@
+{
+  "name": "clonernews",
+  "version": "1.0.0",
+  "description": "A lightweight Hacker News reader implemented as a static browser application.",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://platform.zone01.gr/git/ltzokas/clonernews"
+  },
+  "license": "ISC"
+}
