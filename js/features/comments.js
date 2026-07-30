@@ -57,12 +57,10 @@ export async function loadMoreComments(
   commentState.loading = true;
   commentState.error = null;
 
-  const startCursor = commentState.cursor;
-  const endCursor = Math.min(
-    startCursor + COMMENT_BATCH_SIZE,
-    commentState.ids.length,
+  const { batchIds, endCursor } = getBatchWindow(
+    commentState,
+    COMMENT_BATCH_SIZE,
   );
-  const batchIds = commentState.ids.slice(startCursor, endCursor);
 
   try {
     const comments = await fetchItems(batchIds, { signal });
@@ -72,10 +70,7 @@ export async function loadMoreComments(
     }
 
     mergeComments(commentState, comments);
-
-    commentState.cursor = endCursor;
-    commentState.exhausted =
-      commentState.cursor >= commentState.ids.length;
+    finalizeCommentState(commentState, endCursor);
   } catch (error) {
     if (error && error.name === "AbortError") {
       throw error;
@@ -128,12 +123,10 @@ export async function toggleReplies(commentId, rootPostId, { signal } = {}) {
   commentState.loading = true;
   commentState.error = null;
 
-  const startCursor = commentState.cursor;
-  const endCursor = Math.min(
-    startCursor + REPLY_BATCH_SIZE,
-    commentState.ids.length,
+  const { batchIds, endCursor } = getBatchWindow(
+    commentState,
+    REPLY_BATCH_SIZE,
   );
-  const batchIds = commentState.ids.slice(startCursor, endCursor);
 
   try {
     const replies = await fetchItems(batchIds, { signal });
@@ -143,11 +136,9 @@ export async function toggleReplies(commentId, rootPostId, { signal } = {}) {
     }
 
     mergeComments(commentState, replies);
-
-    commentState.cursor = endCursor;
-    commentState.exhausted =
-      commentState.cursor >= commentState.ids.length;
-    commentState.loaded = true;
+    finalizeCommentState(commentState, endCursor, {
+      loaded: true,
+    });
   } catch (error) {
     if (error && error.name === "AbortError") {
       throw error;
@@ -246,6 +237,29 @@ function createReplyState(parentId, rootPostId, ids) {
     expanded: false,
     loaded: false,
   };
+}
+
+function getBatchWindow(commentState, batchSize) {
+  const startCursor = commentState.cursor;
+  const endCursor = Math.min(
+    startCursor + batchSize,
+    commentState.ids.length,
+  );
+  const batchIds = commentState.ids.slice(startCursor, endCursor);
+
+  return {
+    batchIds,
+    endCursor,
+  };
+}
+
+function finalizeCommentState(commentState, endCursor, { loaded = false } = {}) {
+  commentState.cursor = endCursor;
+  commentState.exhausted = commentState.cursor >= commentState.ids.length;
+
+  if (loaded) {
+    commentState.loaded = true;
+  }
 }
 
 function mergeComments(commentState, incomingComments) {

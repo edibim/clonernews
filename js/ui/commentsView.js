@@ -3,7 +3,10 @@ import {
   toggleReplies,
 } from "../features/comments.js";
 import { setSanitizedHTML } from "../utils/html.js";
-import { formatRelativeTime } from "../utils/time.js";
+import {
+  createMetadataText,
+  createTimeElement,
+} from "./postContentHelpers.js";
 
 /**
  * Renders the comment area for a selected post.
@@ -204,23 +207,3 @@ function createCommentMetadata(comment) {
   return metadata;
 }
 
-function createMetadataText(value) {
-  const element = document.createElement("span");
-
-  element.textContent = value;
-
-  return element;
-}
-
-function createTimeElement(unixSeconds) {
-  const element = document.createElement("time");
-  const nowSeconds = Math.floor(Date.now() / 1000);
-
-  element.textContent = formatRelativeTime(
-    unixSeconds,
-    nowSeconds,
-  );
-  element.dateTime = new Date(unixSeconds * 1000).toISOString();
-
-  return element;
-}
