@@ -28,6 +28,7 @@ export function renderLiveView(container) {
   heading.textContent = "Live updates available";
   message.textContent = createSummary(liveState);
   button.type = "button";
+  button.className = "primary-button";
   button.textContent = "Accept updates";
   button.addEventListener("click", async () => {
     await acceptLiveUpdates(state.activeCategory);

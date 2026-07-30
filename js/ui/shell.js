@@ -216,6 +216,7 @@ function createDetailDialog() {
   heading.textContent = "Post details";
 
   closeButton.id = "close-detail";
+  closeButton.className = "secondary-button";
   closeButton.type = "button";
   closeButton.textContent = "Close";
   closeButton.setAttribute("aria-label", "Close post details");
