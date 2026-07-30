@@ -1,5 +1,5 @@
 import { fetchItems } from "../api/client.js";
-import { COMMENT_BATCH_SIZE } from "../config.js";
+import { COMMENT_BATCH_SIZE, REPLY_BATCH_SIZE } from "../config.js";
 import { state } from "../state.js";
 import { sortNewestFirst } from "../utils/time.js";
 
@@ -90,6 +90,107 @@ export async function loadMoreComments(
 }
 
 /**
+ * Toggles nested replies for a comment.
+ *
+ * @param {number} commentId
+ * @param {number} rootPostId
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<object|null>}
+ */
+export async function toggleReplies(commentId, rootPostId, { signal } = {}) {
+  const existingCommentState = getCommentState(commentId);
+  const commentState = existingCommentState ?? createReplyState(commentId, rootPostId, []);
+
+  if (!existingCommentState) {
+    state.commentsByParent.set(commentId, commentState);
+  }
+
+  if (!commentState.parentId) {
+    commentState.parentId = commentId;
+  }
+
+  if (commentState.expanded) {
+    commentState.expanded = false;
+    return commentState;
+  }
+
+  commentState.expanded = true;
+
+  if (commentState.loaded) {
+    return commentState;
+  }
+
+  if (commentState.cursor >= commentState.ids.length) {
+    commentState.exhausted = true;
+    return commentState;
+  }
+
+  commentState.loading = true;
+  commentState.error = null;
+
+  const startCursor = commentState.cursor;
+  const endCursor = Math.min(
+    startCursor + REPLY_BATCH_SIZE,
+    commentState.ids.length,
+  );
+  const batchIds = commentState.ids.slice(startCursor, endCursor);
+
+  try {
+    const replies = await fetchItems(batchIds, { signal });
+
+    if (!isCurrentCommentRequest(rootPostId)) {
+      return commentState;
+    }
+
+    mergeComments(commentState, replies);
+
+    commentState.cursor = endCursor;
+    commentState.exhausted =
+      commentState.cursor >= commentState.ids.length;
+    commentState.loaded = true;
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw error;
+    }
+
+    commentState.error = "Unable to load replies. Try again.";
+  } finally {
+    commentState.loading = false;
+  }
+
+  return commentState;
+}
+
+/**
+ * Loads the next reply batch for a comment thread.
+ *
+ * @param {number} commentId
+ * @param {number} rootPostId
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<object|null>}
+ */
+export async function loadMoreReplies(commentId, rootPostId, { signal } = {}) {
+  return toggleReplies(commentId, rootPostId, { signal });
+}
+
+/**
+ * Checks whether a comment belongs to the provided root post.
+ *
+ * @param {number} parentId
+ * @param {number} rootPostId
+ * @returns {boolean}
+ */
+export function isInCommentRoot(parentId, rootPostId) {
+  const commentState = getCommentState(parentId);
+
+  if (!commentState) {
+    return false;
+  }
+
+  return commentState.rootPostId === rootPostId;
+}
+
+/**
  * Checks whether a comment belongs directly under a parent item.
  *
  * @param {object|null} comment
@@ -128,6 +229,22 @@ function createCommentState(parentId, rootPostId, ids) {
     exhausted: ids.length === 0,
     error: null,
     expanded: true,
+    loaded: false,
+  };
+}
+
+function createReplyState(parentId, rootPostId, ids) {
+  return {
+    parentId,
+    rootPostId,
+    ids: ids.filter((id) => Number.isSafeInteger(id) && id > 0),
+    items: [],
+    cursor: 0,
+    loading: false,
+    exhausted: ids.length === 0,
+    error: null,
+    expanded: false,
+    loaded: false,
   };
 }
 
@@ -144,6 +261,17 @@ function mergeComments(commentState, incomingComments) {
     }
 
     commentsById.set(comment.id, comment);
+
+    if (!state.commentsByParent.has(comment.id)) {
+      state.commentsByParent.set(
+        comment.id,
+        createReplyState(
+          comment.id,
+          commentState.rootPostId,
+          Array.isArray(comment.kids) ? comment.kids : [],
+        ),
+      );
+    }
   }
 
   commentState.items = sortNewestFirst([...commentsById.values()]);
