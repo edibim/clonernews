@@ -3,6 +3,7 @@ import {
   loadNextPage,
 } from "./features/feed.js";
 import { discoverPolls } from "./features/polls.js";
+import { initializeLiveSnapshot, startLiveUpdates } from "./features/liveUpdates.js";
 import { state } from "./state.js";
 import {
   closePostDetail,
@@ -83,6 +84,9 @@ function initializeApp() {
   app
     .querySelector("#post-detail")
     .addEventListener("close", closePostDetail);
+
+  void initializeLiveSnapshot();
+  startLiveUpdates();
 }
 
 document.addEventListener("DOMContentLoaded", initializeApp);
