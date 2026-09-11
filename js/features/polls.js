@@ -2,6 +2,7 @@ import {
   fetchItem,
   fetchItems,
   requestMaxItem,
+  requestPollCandidateIds,
 } from "../api/client.js";
 import {
   KNOWN_POLL_IDS,
@@ -108,28 +109,12 @@ async function runPollDiscovery(feed, signal) {
   feed.error = null;
 
   try {
-    const maxItem = await requestMaxItem({ signal });
-
-    if (!Number.isSafeInteger(maxItem) || maxItem <= 0) {
-      throw new Error("Invalid max item response");
-    }
-
-    const recentIds = createRecentIds(maxItem);
     const pollsById = new Map();
 
-    for (
-      let cursor = 0;
-      cursor < recentIds.length &&
-      pollsById.size < POLL_TARGET_COUNT;
-      cursor += POLL_TARGET_COUNT
-    ) {
-      const batchIds = recentIds.slice(
-        cursor,
-        cursor + POLL_TARGET_COUNT,
-      );
-      const items = await fetchItems(batchIds, { signal });
+    await addAlgoliaCandidates(pollsById, signal);
 
-      addValidPolls(pollsById, items);
+    if (pollsById.size < POLL_TARGET_COUNT) {
+      await addRecentScanCandidates(pollsById, signal);
     }
 
     for (const fallbackId of KNOWN_POLL_IDS) {
@@ -168,6 +153,70 @@ async function runPollDiscovery(feed, signal) {
     return feed.items;
   } finally {
     feed.loading = false;
+  }
+}
+
+/**
+ * Adds polls discovered via Algolia candidate IDs, resolved and validated
+ * through the official Firebase item endpoint. Algolia never contributes
+ * poll data directly, only candidate IDs.
+ *
+ * @param {Map<number, object>} pollsById
+ * @param {AbortSignal|undefined} signal
+ */
+async function addAlgoliaCandidates(pollsById, signal) {
+  try {
+    const candidateIds = await requestPollCandidateIds({ signal });
+
+    for (
+      let cursor = 0;
+      cursor < candidateIds.length &&
+      pollsById.size < POLL_TARGET_COUNT;
+      cursor += POLL_TARGET_COUNT
+    ) {
+      const batchIds = candidateIds.slice(
+        cursor,
+        cursor + POLL_TARGET_COUNT,
+      );
+      const items = await fetchItems(batchIds, { signal });
+
+      addValidPolls(pollsById, items);
+    }
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Adds polls discovered by scanning the most recent Firebase item IDs.
+ *
+ * @param {Map<number, object>} pollsById
+ * @param {AbortSignal|undefined} signal
+ */
+async function addRecentScanCandidates(pollsById, signal) {
+  const maxItem = await requestMaxItem({ signal });
+
+  if (!Number.isSafeInteger(maxItem) || maxItem <= 0) {
+    throw new Error("Invalid max item response");
+  }
+
+  const recentIds = createRecentIds(maxItem);
+
+  for (
+    let cursor = 0;
+    cursor < recentIds.length &&
+    pollsById.size < POLL_TARGET_COUNT;
+    cursor += POLL_TARGET_COUNT
+  ) {
+    const batchIds = recentIds.slice(
+      cursor,
+      cursor + POLL_TARGET_COUNT,
+    );
+    const items = await fetchItems(batchIds, { signal });
+
+    addValidPolls(pollsById, items);
   }
 }
 
