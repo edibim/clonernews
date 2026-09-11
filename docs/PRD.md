@@ -128,6 +128,12 @@ Requirement IDs are permanent. Tests, milestones, and audit notes cite them.
 - **R44** — Accept a poll option only when it has `type === "pollopt"` and its `poll` matches the selected poll.
 - **R45** — Preserve the API's `parts` order when rendering options.
 - **R46** — Invalid or unavailable options show a stable placeholder and do not break the poll.
+- **R87** — Poll discovery first attempts to obtain candidate poll IDs from the Hacker News Algolia Search API (`search_by_date`, `tags=poll`), bounded by `ALGOLIA_POLL_CANDIDATE_LIMIT`.
+- **R88** — Every Algolia-sourced candidate ID is resolved via the official Firebase `/item/<id>.json` endpoint and must pass the same `type === "poll"`, non-`dead`, non-`deleted` validation as any other candidate (R42) before it can be displayed.
+- **R89** — Fields returned by Algolia other than the item ID are never rendered and never override the corresponding Firebase-sourced field.
+- **R90** — If the Algolia request fails, times out, or yields no valid polls, discovery falls through to the existing recent-ID scan (R39/R40), and if that is also insufficient, to `KNOWN_POLL_IDS` (R41), without throwing or surfacing an error to the user for the Algolia step specifically.
+- **R91** — Poll discovery still stops once `POLL_TARGET_COUNT` valid, deduplicated polls have been collected, counting cumulatively across the Algolia, recent-scan, and fallback tiers.
+- **R92** — Algolia is queried at most once per discovery run, and the number of candidates requested is bounded by the documented `ALGOLIA_POLL_CANDIDATE_LIMIT` constant.
 
 ### 4.6 Comments
 
@@ -202,6 +208,8 @@ export const POLL_TARGET_COUNT;        // 6
 export const LIVE_NEW_ITEM_FETCH_CAP;  // 20
 export const KNOWN_POLL_IDS;           // [160704, 126809]
 export const CATEGORIES;
+export const ALGOLIA_POLL_SEARCH_URL;      // "https://hn.algolia.com/api/v1/search_by_date?tags=poll"
+export const ALGOLIA_POLL_CANDIDATE_LIMIT; // 18
 ```
 
 ### 5.2 State
@@ -225,6 +233,7 @@ export function getItemUrl(id);
 export function getFeedUrl(category);
 export function getMaxItemUrl();
 export function getUpdatesUrl();
+export function getAlgoliaPollSearchUrl({ limit } = {});
 
 // js/api/client.js
 export async function fetchJson(url, { signal } = {});
@@ -232,6 +241,7 @@ export async function requestItem(id, { signal } = {});
 export async function requestFeedIds(category, { signal } = {});
 export async function requestMaxItem({ signal } = {});
 export async function requestUpdates({ signal } = {});
+export async function requestPollCandidateIds({ signal } = {});
 export async function fetchItem(
   id,
   { forceRefresh = false, signal } = {},

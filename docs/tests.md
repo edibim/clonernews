@@ -194,6 +194,9 @@ File: `tests/api.test.js`
 - [ ] Max item maps to `/maxitem.json` — R39, R65.
 - [ ] Updates map to `/updates.json` — R66.
 - [ ] Zero, negative, fractional, string, `NaN`, and unsafe integer item IDs fail before fetch.
+- [ ] Algolia poll candidate search maps to `search_by_date?tags=poll`, bounded by `ALGOLIA_POLL_CANDIDATE_LIMIT` — R87, R92.
+- [ ] Zero, negative, fractional, and non-numeric Algolia candidate limits fail before fetch.
+- [ ] Malformed or missing Algolia `hits` data resolves to an empty candidate list rather than throwing.
 
 ### JSON Client
 
@@ -287,14 +290,20 @@ File: `tests/polls.test.js`
 ### Discovery
 
 - [ ] Discovery does not begin before the Polls feed is opened — R38.
+- [ ] Discovery first requests candidate poll IDs from the Algolia Search API — R87.
+- [ ] Algolia candidates are resolved and validated through the official Firebase item endpoint before being displayed — R88.
+- [ ] Fields other than the item ID from an Algolia hit are never rendered or trusted — R89.
+- [ ] The recent-ID scan only runs when Algolia candidates do not already satisfy the poll target — R39, R90.
 - [ ] Discovery starts from the current max item — R39.
 - [ ] No more than 60 recent IDs are inspected — R39.
-- [ ] Discovery stops after six valid polls — R40.
+- [ ] Discovery stops after six valid polls, counted across Algolia, scan, and fallback tiers — R40, R91.
 - [ ] Fallback IDs are added when needed — R41.
 - [ ] Fallback records are fetched from the API.
 - [ ] A fallback record with the wrong type is ignored — R42.
 - [ ] Recent and fallback polls are deduplicated.
-- [ ] Final Polls feed is newest-first — R17.
+- [ ] An Algolia request failure or timeout falls through to the recent-ID scan and known fallback IDs without surfacing an error — R90.
+- [ ] Algolia candidate requests are bounded by `ALGOLIA_POLL_CANDIDATE_LIMIT` and issued at most once per discovery run — R92.
+- [ ] Final Polls feed is newest-first across all discovery tiers — R17.
 
 ### Options
 

@@ -25,7 +25,7 @@ The project focuses on clean architecture, modularity and performance while usin
 ## 🛠 Tech Stack
 
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES Modules)
-- **API:** Hacker News Firebase API
+- **API:** Hacker News Firebase API (authoritative source for all post, comment, and poll data), with the Hacker News Algolia Search API used only to discover candidate poll IDs
 - **Architecture:** Modular Layered Architecture
 - **Browser APIs:** Fetch API, IntersectionObserver, AbortController, HTML Dialog Element
 
