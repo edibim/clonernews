@@ -53,6 +53,12 @@ function createOption(id, poll, text = `Option ${id}`, score = 1) {
   };
 }
 
+function createAlgoliaHits(ids) {
+  return {
+    hits: ids.map((id) => ({ objectID: String(id) })),
+  };
+}
+
 function resetPollTestState() {
   resetState();
   clearItemCache();
@@ -81,6 +87,7 @@ test("poll discovery inspects no more than 60 recent IDs", async () => {
 
   await withMockFetch(
     [
+      { body: { hits: [] } },
       { body: maxItem },
       ...recentIds.map((id) => ({ body: createStory(id) })),
       { body: null },
@@ -114,6 +121,7 @@ test("poll discovery stops after six valid polls and caches results", async () =
 
   await withMockFetch(
     [
+      { body: { hits: [] } },
       { body: maxItem },
       ...recentIds.map((id) => ({ body: createPoll(id) })),
     ],
@@ -123,7 +131,7 @@ test("poll discovery stops after six valid polls and caches results", async () =
 
       assertEqual(firstResult.length, 6);
       assertEqual(secondResult, firstResult);
-      assertEqual(mockFetch.calls.length, 7);
+      assertEqual(mockFetch.calls.length, 8);
       assertEqual(state.feeds.polls.initialized, true);
     },
   );
@@ -137,6 +145,7 @@ test("fallback poll IDs are added without duplicates", async () => {
 
   await withMockFetch(
     [
+      { body: { hits: [] } },
       { body: maxItem },
       { body: createPoll(160_704) },
       ...recentIds
@@ -167,6 +176,7 @@ test("invalid fallback poll data is ignored safely", async () => {
 
   await withMockFetch(
     [
+      { body: { hits: [] } },
       { body: maxItem },
       ...recentIds.map((id) => ({ body: createStory(id) })),
       { body: null },
@@ -189,6 +199,7 @@ test("discovered polls are sorted newest-first", async () => {
 
   await withMockFetch(
     [
+      { body: { hits: [] } },
       { body: maxItem },
       ...recentIds.map((id, index) => ({
         body: createPoll(id, times[index]),
@@ -199,6 +210,130 @@ test("discovered polls are sorted newest-first", async () => {
 
       assertEqual(polls[0].time, 600);
       assertEqual(polls[5].time, 100);
+    },
+  );
+});
+
+test("poll discovery uses Algolia candidates before scanning recent IDs", async () => {
+  resetPollTestState();
+
+  const pollIds = [99_101, 99_102, 99_103, 99_104, 99_105, 99_106];
+
+  await withMockFetch(
+    [
+      { body: createAlgoliaHits(pollIds) },
+      ...pollIds.map((id) => ({ body: createPoll(id) })),
+    ],
+    async (mockFetch) => {
+      const polls = await discoverPolls();
+
+      assertEqual(polls.length, 6);
+      assertEqual(mockFetch.calls.length, 7);
+      assertEqual(
+        mockFetch.calls.some((call) => call.url.includes("maxitem")),
+        false,
+      );
+    },
+  );
+});
+
+test("an Algolia candidate rejected by Firebase validation falls through to remaining tiers", async () => {
+  resetPollTestState();
+
+  const maxItem = 99_200;
+  const recentIds = createRecentIds(maxItem, 6);
+
+  await withMockFetch(
+    [
+      { body: createAlgoliaHits([99_150]) },
+      { body: createStory(99_150) },
+      { body: maxItem },
+      ...recentIds.map((id) => ({ body: createPoll(id) })),
+    ],
+    async () => {
+      const polls = await discoverPolls();
+
+      assertEqual(
+        polls.some((poll) => poll.id === 99_150),
+        false,
+      );
+      assertEqual(polls.length, 6);
+    },
+  );
+});
+
+test("Algolia request failure degrades gracefully to the existing scan and fallback tiers", async () => {
+  resetPollTestState();
+
+  const maxItem = 160_704;
+  const recentIds = createRecentIds(maxItem);
+
+  await withMockFetch(
+    [
+      { reject: new Error("network error") },
+      { body: maxItem },
+      { body: createPoll(160_704) },
+      ...recentIds
+        .slice(1)
+        .map((id) => ({ body: createStory(id) })),
+      { body: createPoll(126_809) },
+    ],
+    async () => {
+      const polls = await discoverPolls();
+
+      assertEqual(polls.length, 2);
+      assertEqual(state.feeds.polls.error, null);
+    },
+  );
+});
+
+test("Algolia candidate requests respect the documented candidate limit", async () => {
+  resetPollTestState();
+
+  const maxItem = 100_000;
+  const recentIds = createRecentIds(maxItem);
+
+  await withMockFetch(
+    [
+      { body: { hits: [] } },
+      { body: maxItem },
+      ...recentIds.map((id) => ({ body: createStory(id) })),
+      { body: null },
+      { body: null },
+    ],
+    async (mockFetch) => {
+      await discoverPolls();
+
+      assert(mockFetch.calls[0].url.includes("hitsPerPage=18"));
+    },
+  );
+});
+
+test("Algolia-sourced and scan-sourced polls are sorted together newest-first", async () => {
+  resetPollTestState();
+
+  // A small maxItem keeps createRecentIds's window (min(POLL_SCAN_BUDGET,
+  // maxItem)) to exactly one batch, so the scan tier resolves in a single
+  // fetchItems call without needing 60 mocked responses.
+  const maxItem = 6;
+  const recentIds = createRecentIds(maxItem, 6);
+  const scanTimes = [900, 800, 700, 600, 500, 400];
+
+  await withMockFetch(
+    [
+      { body: createAlgoliaHits([99_250]) },
+      { body: createPoll(99_250, 50) },
+      { body: maxItem },
+      ...recentIds.map((id, index) => ({
+        body: createPoll(id, scanTimes[index]),
+      })),
+    ],
+    async () => {
+      const polls = await discoverPolls();
+
+      assertEqual(polls.length, 6);
+      assertEqual(polls[0].time, 900);
+      assertEqual(polls[5].time, 50);
     },
   );
 });

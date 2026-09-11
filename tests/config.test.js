@@ -1,6 +1,8 @@
 import { assertEqual, test } from "./runner.js";
 
 import {
+  ALGOLIA_POLL_CANDIDATE_LIMIT,
+  ALGOLIA_POLL_SEARCH_URL,
   API_BASE_URL,
   CATEGORIES,
   COMMENT_BATCH_SIZE,
@@ -52,6 +54,17 @@ test("config targets six discovered polls", () => {
 
 test("config inspects at most twenty new live items", () => {
   assertEqual(LIVE_NEW_ITEM_FETCH_CAP, 20);
+});
+
+test("config uses the documented Algolia poll search URL", () => {
+  assertEqual(
+    ALGOLIA_POLL_SEARCH_URL,
+    "https://hn.algolia.com/api/v1/search_by_date?tags=poll",
+  );
+});
+
+test("config bounds Algolia poll candidates to eighteen", () => {
+  assertEqual(ALGOLIA_POLL_CANDIDATE_LIMIT, 18);
 });
 
 test("config contains the documented fallback poll IDs", () => {

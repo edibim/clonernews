@@ -5,10 +5,12 @@ import {
   requestFeedIds,
   requestItem,
   requestMaxItem,
+  requestPollCandidateIds,
   requestUpdates,
 } from "../js/api/client.js";
 
 import {
+  getAlgoliaPollSearchUrl,
   getFeedUrl,
   getItemUrl,
   getMaxItemUrl,
@@ -78,6 +80,36 @@ test("getUpdatesUrl builds the updates URL", () => {
     getUpdatesUrl(),
     "https://hacker-news.firebaseio.com/v0/updates.json",
   );
+});
+
+test("getAlgoliaPollSearchUrl builds the bounded Algolia poll search URL", () => {
+  assertEqual(
+    getAlgoliaPollSearchUrl(),
+    "https://hn.algolia.com/api/v1/search_by_date?tags=poll&hitsPerPage=18",
+  );
+});
+
+test("getAlgoliaPollSearchUrl accepts a custom candidate limit", () => {
+  assertEqual(
+    getAlgoliaPollSearchUrl({ limit: 5 }),
+    "https://hn.algolia.com/api/v1/search_by_date?tags=poll&hitsPerPage=5",
+  );
+});
+
+test("getAlgoliaPollSearchUrl rejects invalid candidate limits", () => {
+  const invalidLimits = [0, -1, 1.5, "18", Number.NaN];
+
+  for (const limit of invalidLimits) {
+    let receivedError = null;
+
+    try {
+      getAlgoliaPollSearchUrl({ limit });
+    } catch (error) {
+      receivedError = error;
+    }
+
+    assertEqual(receivedError instanceof Error, true);
+  }
 });
 
 test("fetchJson preserves unknown fields from a successful response", async () => {
@@ -329,6 +361,74 @@ test("requestUpdates requests the updates endpoint", async () => {
       mockFetch.calls[0].url,
       "https://hacker-news.firebaseio.com/v0/updates.json",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("requestPollCandidateIds requests the Algolia poll search endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      body: {
+        hits: [{ objectID: "160704" }, { objectID: "126809" }],
+      },
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+
+  try {
+    const ids = await requestPollCandidateIds();
+
+    assertEqual(
+      mockFetch.calls[0].url,
+      "https://hn.algolia.com/api/v1/search_by_date?tags=poll&hitsPerPage=18",
+    );
+    assertEqual(ids.length, 2);
+    assertEqual(ids[0], 160704);
+    assertEqual(ids[1], 126809);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("requestPollCandidateIds ignores malformed hits safely", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      body: {
+        hits: [{ objectID: "not-a-number" }, { objectID: "42" }],
+      },
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+
+  try {
+    const ids = await requestPollCandidateIds();
+
+    assertEqual(ids.length, 1);
+    assertEqual(ids[0], 42);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("requestPollCandidateIds returns an empty list for a missing hits field", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = createMockFetch([
+    {
+      body: {},
+    },
+  ]);
+
+  globalThis.fetch = mockFetch;
+
+  try {
+    const ids = await requestPollCandidateIds();
+
+    assertEqual(ids.length, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
