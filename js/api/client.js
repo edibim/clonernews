@@ -1,4 +1,5 @@
 import {
+  getAlgoliaPollSearchUrl,
   getFeedUrl,
   getItemUrl,
   getMaxItemUrl,
@@ -79,6 +80,24 @@ export async function requestUpdates({ signal } = {}) {
   const url = getUpdatesUrl();
 
   return fetchJson(url, { signal });
+}
+
+/**
+ * Requests candidate poll item IDs from the Algolia HN Search API.
+ * Candidates are discovery hints only; callers must still resolve and
+ * validate each ID through the official Firebase item endpoint.
+ *
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<number[]>}
+ */
+export async function requestPollCandidateIds({ signal } = {}) {
+  const url = getAlgoliaPollSearchUrl();
+  const data = await fetchJson(url, { signal });
+  const hits = Array.isArray(data?.hits) ? data.hits : [];
+
+  return hits
+    .map((hit) => Number(hit?.objectID))
+    .filter((id) => Number.isSafeInteger(id) && id > 0);
 }
 
 /**
