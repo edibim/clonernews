@@ -12,6 +12,10 @@ export const POLL_SCAN_BUDGET = 60;
 export const POLL_TARGET_COUNT = 6;
 export const LIVE_NEW_ITEM_FETCH_CAP = 20;
 
+export const ALGOLIA_POLL_SEARCH_URL =
+  "https://hn.algolia.com/api/v1/search_by_date?tags=poll";
+export const ALGOLIA_POLL_CANDIDATE_LIMIT = 18;
+
 export const KNOWN_POLL_IDS = Object.freeze([
   160704,
   126809,
