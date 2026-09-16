@@ -36,7 +36,7 @@ The project focuses on clean architecture, modularity and performance while usin
 ### Clone the repository
 
 ```bash
-git clone https://platform.zone01.gr/git/ltzokas/clonernews.git
+git clone https://github.com/edibim/clonernews
 cd clonernews
 ```
 
